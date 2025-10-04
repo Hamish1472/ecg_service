@@ -1,14 +1,12 @@
 # === ENVIRONMENT & CONFIG ===
 .env
+.vscode
 
 # === LOGS ===
 logs/
 
 # === AUTH FILES ===
 src/auth/
-# (you can be more specific if you prefer)
-# src/auth/credentials.json
-# src/auth/token.pickle
 
 # === DATA ===
 src/data/
