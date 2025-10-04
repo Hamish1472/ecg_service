@@ -1,0 +1,31 @@
+# === ENVIRONMENT & CONFIG ===
+.env
+
+# === LOGS ===
+logs/
+
+# === AUTH FILES ===
+src/auth/
+# (you can be more specific if you prefer)
+# src/auth/credentials.json
+# src/auth/token.pickle
+
+# === DATA ===
+src/data/
+
+# === BUILD ARTEFACTS ===
+src/ecg_service.egg-info/
+
+# === TEMPORARY / CACHED FILES ===
+TEMP/
+__pycache__/
+*.py[cod]
+*.log
+
+# === SYSTEM FILES ===
+.DS_Store
+Thumbs.db
+
+# === VIRTUAL ENVIRONMENTS (if you add one later) ===
+venv/
+env/

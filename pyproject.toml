@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecg-service"
+version = "1.0.0"
+description = "Automated ECG report fetching, encryption, and delivery system."
+authors = [
+    { name = "Hamish Dixon", email = "hamish1472@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "gspread",
+    "google-auth-oauthlib",
+    "google-api-python-client",
+    "python-dotenv",
+    "py7zr",
+    "vonage",
+]
+
+[project.scripts]
+ecg-service = "ecg_service.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+"ecg_service" = ["auth/*", "data/*", "logs/*"]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
