@@ -2,7 +2,7 @@ import logging
 import os
 import datetime
 import time
-from ecg_service.integrations import ecg_send
+from ecg_service.core import ecg_send
 from ecg_service.config import POLL_INTERVAL, DATA_DIR
 from ecg_service.core.tokens import get_access_token
 from ecg_service.core.studies import (
