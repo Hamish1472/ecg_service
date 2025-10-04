@@ -7,8 +7,6 @@ from ecg_service.config import (
     TEMP_DIR,
     csv_file_for_date,
     EMAIL_SENDER,
-    VONAGE_API_KEY,
-    VONAGE_API_SECRET,
     SMS_SENDER_ID,
     PASSWORD_DB,
 )

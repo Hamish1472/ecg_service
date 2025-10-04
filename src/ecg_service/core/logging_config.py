@@ -1,26 +1,32 @@
 import os
 import logging
+from logging.handlers import TimedRotatingFileHandler
 
 
 def setup_logging():
     os.makedirs("logs", exist_ok=True)
     log_filename = "logs/core.log"
 
-    # Get log level from environment or default to INFO
     log_level = os.getenv("LOGLEVEL", "INFO").upper()
     numeric_level = getattr(logging, log_level, logging.INFO)
 
-    # Define a consistent format including process name
     log_format = "%(asctime)s - %(processName)s - %(levelname)s - %(message)s"
 
-    # Configure logging
+    file_handler = TimedRotatingFileHandler(
+        log_filename,
+        when="midnight",
+        interval=1,
+        backupCount=30,
+        encoding="utf-8",
+    )
+
+    file_handler.setFormatter(logging.Formatter(log_format))
+
     logging.basicConfig(
         level=numeric_level,
         format=log_format,
         handlers=[
-            logging.FileHandler(log_filename, mode="a", encoding="utf-8"),
+            file_handler,
             logging.StreamHandler(),
         ],
     )
-
-    logging.info("#" * 80)
