@@ -13,7 +13,7 @@ from ecg_service.config import (
     BASE_DIR,
     DATA_DIR,
 )
-from ecg_service.core import logging_config
+from ecg_service.utils import logging_config
 
 logging_config.setup_logging()
 

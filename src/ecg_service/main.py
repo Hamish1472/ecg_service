@@ -2,7 +2,7 @@ import logging
 from multiprocessing import Process, Event
 from ecg_service.core.poller import run_poller
 from ecg_service.core.google_API import run_google_sync
-from ecg_service.core.logging_config import setup_logging
+from ecg_service.utils.logging_config import setup_logging
 
 
 def main():

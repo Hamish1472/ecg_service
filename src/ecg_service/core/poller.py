@@ -11,7 +11,7 @@ from ecg_service.core.studies import (
     load_seen_ids,
     save_seen_ids,
 )
-from ecg_service.core import logging_config
+from ecg_service.utils import logging_config, cleanup
 
 logging_config.setup_logging()
 
@@ -48,18 +48,7 @@ def run_poller(stop_event):
             else:
                 logging.info("No new reports found.")
 
-            # Cleanup old CSV files
-            for filename in os.listdir(DATA_DIR):
-                if filename.endswith(".csv"):
-                    try:
-                        file_date = datetime.datetime.strptime(
-                            filename.replace(".csv", ""), "%Y-%m-%d"
-                        ).date()
-                        if (datetime.date.today() - file_date).days > 30:
-                            os.remove(os.path.join(DATA_DIR, filename))
-                            logging.info(f"Deleted old CSV: {filename}")
-                    except ValueError:
-                        continue
+            cleanup.cleanup_old_csvs(DATA_DIR, 30)
 
             error_count = 0
             time.sleep(POLL_INTERVAL)

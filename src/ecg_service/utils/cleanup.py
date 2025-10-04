@@ -3,7 +3,7 @@ import datetime
 import logging
 
 
-def cleanup_old_csvs(data_dir="data", days=30):
+def cleanup_old_csvs(data_dir, days):
     for filename in os.listdir(data_dir):
         if not filename.endswith(".csv"):
             continue
