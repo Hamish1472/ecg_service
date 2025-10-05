@@ -58,7 +58,6 @@ def authenticate():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Use the absolute path so it works regardless of working directory
             flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
             creds = flow.run_local_server(port=0)
 
@@ -67,7 +66,7 @@ def authenticate():
 
     client = gspread.authorize(creds)
     sheet = client.open_by_key(SPREADSHEET_ID).worksheet(SHEET_NAME)
-    drive_service = build("drive", "v3", credentials=creds)
+    drive_service = build("drive", "v3", credentials=creds, cache_discovery=False)
     return sheet, drive_service
 
 
@@ -151,23 +150,15 @@ def delete_old_rows(sheet, days_old=30):
 def run_google_sync(stop_event):
     sheet, drive_service = authenticate()
     os.makedirs(DATA_DIR, exist_ok=True)
-    current_date = datetime.date.today()
-    csv_file = os.path.join(DATA_DIR, f"{current_date}.csv")
+    csv_file = os.path.join(DATA_DIR, "sheet.csv")
 
     logging.info("Google Sheets sync started...")
 
     while not stop_event.is_set():
         try:
-            today = datetime.date.today()
-            if today != current_date:
-                current_date = today
-                csv_file = os.path.join(DATA_DIR, f"{current_date}.csv")
-                logging.info(f"New day detected. Switched to CSV: {csv_file}")
-
             delete_old_rows(sheet, days_old=30)
             clean_drive_folder(drive_service, FOLDER_ID, days_old=2)
             sync_sheet(sheet, csv_file)
-
             time.sleep(2)
 
         except Exception as e:

@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ecg-service = "ecg_service.main:main"
+run = "ecg_service.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

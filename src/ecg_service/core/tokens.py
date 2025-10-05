@@ -19,7 +19,8 @@ def get_access_token():
     }
 
     response = requests.post(OAUTH_URL, data=payload)
-    logging.info(f"OAUTH_URL={OAUTH_URL}, status={response.status_code}")
+    if response.status_code != 200:
+        logging.info(f"QT API | status={response.status_code}")
 
     response.raise_for_status()
     return response.json()["access_token"]

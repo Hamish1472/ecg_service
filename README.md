@@ -29,5 +29,5 @@ Run:
 
 ```bash
 pip install -e .
-ecg-service
+run
 ```

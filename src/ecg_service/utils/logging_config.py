@@ -22,11 +22,11 @@ def setup_logging():
 
     file_handler.setFormatter(logging.Formatter(log_format))
 
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARNING)
+
     logging.basicConfig(
         level=numeric_level,
         format=log_format,
-        handlers=[
-            file_handler,
-            logging.StreamHandler(),
-        ],
+        handlers=[file_handler, console_handler],
     )

@@ -45,8 +45,6 @@ def run_poller(stop_event):
                     ecg_send.main()  # handles compression/email/SMS
                     seen_ids.add(sid)
                     save_seen_ids(seen_ids)
-            else:
-                logging.info("No new reports found.")
 
             cleanup.cleanup_old_csvs(DATA_DIR, 30)
 

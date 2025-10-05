@@ -63,7 +63,7 @@ CSV_URL = f"{HOSTNAME}/api/v1/patient-information-entities/import"
 # Service Settings
 # ========================
 POLL_INTERVAL = 60  # in seconds
-LOGLEVEL = "DEBUG"
+# LOGLEVEL = "DEBUG"
 
 
 # ========================
