@@ -9,11 +9,10 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from ecg_service.config import (
-    BASE_DIR,
-    DATA_DIR,
-)
+from ecg_service.config import BASE_DIR, DATA_DIR, CSV_PATH
 from ecg_service.utils import logging_config
+from ecg_service.core.patient_creation import upload_csv
+from ecg_service.core.token_manager import with_token_refresh
 
 logging_config.setup_logging()
 
@@ -147,18 +146,23 @@ def delete_old_rows(sheet, days_old=30):
             logging.error(f"Failed to delete row {row_index}: {e}")
 
 
+@with_token_refresh
+def safe_upload_csv(access_token):
+    return upload_csv(access_token)
+
+
 def run_google_sync(stop_event):
     sheet, drive_service = authenticate()
     os.makedirs(DATA_DIR, exist_ok=True)
-    csv_file = os.path.join(DATA_DIR, "sheet.csv")
 
     logging.info("Google Sheets sync started...")
 
     while not stop_event.is_set():
         try:
-            delete_old_rows(sheet, days_old=30)
-            clean_drive_folder(drive_service, FOLDER_ID, days_old=2)
-            sync_sheet(sheet, csv_file)
+            delete_old_rows(sheet)
+            clean_drive_folder(drive_service, FOLDER_ID)
+            sync_sheet(sheet, CSV_PATH)
+            safe_upload_csv()
             time.sleep(2)
 
         except Exception as e:

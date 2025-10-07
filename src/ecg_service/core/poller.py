@@ -1,17 +1,15 @@
 import logging
-import os
-import datetime
 import time
 from ecg_service.core import ecg_send
-from ecg_service.config import POLL_INTERVAL, DATA_DIR
-from ecg_service.core.tokens import get_access_token
+from ecg_service.config import POLL_INTERVAL
+from ecg_service.core.token_manager import TokenManager
 from ecg_service.core.studies import (
     fetch_all_studies,
     download_pdf,
     load_seen_ids,
     save_seen_ids,
 )
-from ecg_service.utils import logging_config, cleanup
+from ecg_service.utils import logging_config
 
 logging_config.setup_logging()
 
@@ -23,7 +21,7 @@ def run_poller(stop_event):
 
     while not stop_event.is_set():
         try:
-            access_token = f"Bearer {get_access_token()}"
+            access_token = TokenManager.get_token()
             studies = fetch_all_studies(access_token)
 
             new_reports = [
@@ -46,7 +44,7 @@ def run_poller(stop_event):
                     seen_ids.add(sid)
                     save_seen_ids(seen_ids)
 
-            cleanup.cleanup_old_csvs(DATA_DIR, 30)
+            logging.info(f"No new reports detected, checking again in {POLL_INTERVAL}s")
 
             error_count = 0
             time.sleep(POLL_INTERVAL)

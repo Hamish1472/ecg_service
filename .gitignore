@@ -1,6 +1,7 @@
 # === ENVIRONMENT & CONFIG ===
 .env
 .vscode
+POSTMAN/
 
 # === LOGS ===
 logs/
@@ -19,6 +20,7 @@ TEMP/
 __pycache__/
 *.py[cod]
 *.log
+.pytest_cache
 
 # === SYSTEM FILES ===
 .DS_Store

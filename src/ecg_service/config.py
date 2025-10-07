@@ -37,6 +37,7 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 SEEN_IDS_FILE = os.path.join(DATA_DIR, "seen_ids.json")
 PASSWORD_DB = os.path.join(DATA_DIR, "passwords.db")
+CSV_PATH = os.path.join(DATA_DIR, "sheet.csv")
 
 
 # ========================
@@ -69,8 +70,8 @@ POLL_INTERVAL = 60  # in seconds
 # ========================
 # Helper Functions
 # ========================
-def csv_file_for_date(date=None):
-    """Return CSV path for a specific date (defaults to today)."""
-    if date is None:
-        date = datetime.date.today()
-    return os.path.join(DATA_DIR, f"{date}.csv")
+# def csv_file_for_date(date=None):
+#     """Return CSV path for a specific date (defaults to today)."""
+#     if date is None:
+#         date = datetime.date.today()
+#     return os.path.join(DATA_DIR, f"{date}.csv")
