@@ -4,7 +4,6 @@ import time
 from ecg_service.config import (
     TEMP_DIR,
     TEMP_DIR_OBJ,
-    CSV_PATH,
     EMAIL_SENDER,
     SMS_SENDER_ID,
     PASSWORD_DB,
@@ -12,39 +11,27 @@ from ecg_service.config import (
 from ecg_service.utils import csv_utils, email_utils, encryption_utils, sms_utils
 
 
-def process_pdf(filename: str):
-    """Encrypt, zip, and send a single PDF."""
+def process_pdf(filename: str, csv_path: str):
+    """Encrypt, zip, and send a single PDF using club CSV."""
     pdf_path = os.path.join(TEMP_DIR, filename)
-    email_address = os.path.splitext(filename)[0]
-    archive_name = f"{email_address}.7z"
-    archive_path = os.path.join(TEMP_DIR, archive_name)
+    email = os.path.splitext(filename)[0]
+    archive = f"{email}.7z"
+    archive_path = os.path.join(TEMP_DIR, archive)
     password = encryption_utils.generate_password()
 
-    # Wait until the file exists
-    wait_seconds = 0
-    while not os.path.exists(CSV_PATH):
-        if wait_seconds >= 30:  # optional max wait
-            logging.warning(
-                f"{CSV_PATH} not found after {wait_seconds}s, continuing anyway."
-            )
-            break
-        logging.info(f"{CSV_PATH} not found yet, waiting 1s...")
+    wait = 0
+    while not os.path.exists(csv_path) and wait < 30:
         time.sleep(1)
-        wait_seconds += 1
+        wait += 1
 
-    # Get phone number from today's CSV first
-    phone_number = csv_utils.get_phone_number_from_email(CSV_PATH, email_address)
-
-    # Compress PDF and store password
+    phone = csv_utils.get_phone_number_from_email(csv_path, email)
     encryption_utils.compress_pdf(pdf_path, archive_path, password)
-    encryption_utils.store_password(PASSWORD_DB, archive_name, password)
+    encryption_utils.store_password(PASSWORD_DB, archive, password)
 
-    # Zip for email attachment
-    zip_name = f"{email_address}.zip"
+    zip_name = f"{email}.zip"
     zip_path = os.path.join(TEMP_DIR, zip_name)
     encryption_utils.zip_archive(archive_path, zip_path)
 
-    # Prepare email body
     base_body = (
         "Please find your encrypted PDF archive attached.\n"
         "To access the PDF please follow these steps:\n"
@@ -56,36 +43,35 @@ def process_pdf(filename: str):
     )
     password_info = (
         "Phone number not found. Please contact us for the password."
-        if phone_number == "Not found"
+        if phone == "Not found"
         else "Password sent to provided contact number."
     )
 
     full_body = base_body + password_info
 
-    # Send email
-    email_utils.send_email(email_address, "Encrypted PDF Archive", full_body, zip_path)
-    logging.info(f"Email sent to {email_address} with encrypted PDF")
+    email_utils.send_email(email, "Encrypted PDF Archive", full_body, zip_path)
+    logging.info(f"Email sent to {email}")
 
-    # Send SMS if phone exists
-    if phone_number != "Not found":
-        sms_utils.send_sms(phone_number, password, SMS_SENDER_ID)
-        logging.info(f"SMS sent to {phone_number}")
+    if phone != "Not found":
+        sms_utils.send_sms(phone, password, SMS_SENDER_ID)
+        logging.info(f"SMS sent to {phone}")
 
 
-def main():
-    """Process all PDFs in TEMP folder."""
-    # os.makedirs(TEMP_DIR, exist_ok=True)
+def process_club_pdfs(club_name: str, csv_path: str):
+    """Process all PDFs in TEMP_DIR for one club."""
+    logging.info(f"Processing PDFs for {club_name}")
 
-    pdf_files = [f for f in os.listdir(TEMP_DIR) if f.endswith(".pdf")]
-    for filename in pdf_files:
+    for f in os.listdir(TEMP_DIR):
+        if not f.endswith(".pdf"):
+            continue
         try:
-            process_pdf(filename)
+            process_pdf(f, csv_path)
         except Exception as e:
-            logging.exception(f"Failed processing PDF {filename}: {e}")
+            logging.exception(f"{club_name}: PDF error {f}: {e}")
             email_utils.send_email(
                 EMAIL_SENDER,
-                "Failed PDF Pipeline",
-                f"The pipeline failed for PDF: {filename} with exception:\n\n{e}",
+                f"PDF Pipeline Failure - {club_name}",
+                f"Error processing {f}:\n{e}",
             )
 
     TEMP_DIR_OBJ.cleanup()
