@@ -1,4 +1,4 @@
-# Cardiologic
+# ECG-Service
 
 ## Licence
 
