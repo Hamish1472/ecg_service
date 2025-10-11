@@ -21,6 +21,7 @@ __pycache__/
 *.py[cod]
 *.log
 .pytest_cache
+_misc
 
 # === SYSTEM FILES ===
 .DS_Store

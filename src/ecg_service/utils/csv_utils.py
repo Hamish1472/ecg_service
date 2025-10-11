@@ -51,7 +51,7 @@ def format_consent_csv(input_csv_path: str, output_csv_path: str):
     df = pd.read_csv(input_csv_path)
 
     # Split Name field
-    df["NameParts"] = df["Name"].str.split(",")
+    df["NameParts"] = df["Patient Name"].str.split(",")
 
     df["FirstName"] = df["NameParts"].apply(
         lambda x: x[0].strip() if isinstance(x, list) and len(x) > 0 else ""
@@ -61,7 +61,7 @@ def format_consent_csv(input_csv_path: str, output_csv_path: str):
     )
 
     df["Birthdate"] = pd.to_datetime(
-        df["Date of Birth"], format="%d/%m/%Y"
+        df["Patient Date of Birth"], format="%d/%m/%Y"
     ).dt.strftime("%m/%d/%Y")
 
     new_df = pd.DataFrame(
@@ -77,8 +77,6 @@ def format_consent_csv(input_csv_path: str, output_csv_path: str):
                 "Are you currently experiencing any heart-related symptoms?"
             ],
             "Parent/Guardian Name": df["Parent/Guardian Name"],
-            "Parent/Guardian Phone": df["Parent/Guardian Phone"],
-            "Parent/Guardian Email": df["Parent/Guardian Email"],
             "Anonymous sharing opt out": df[
                 "Opt out of anonymised data sharing for research purposes"
             ],

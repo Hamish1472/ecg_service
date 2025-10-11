@@ -1,5 +1,5 @@
 import os
-import datetime
+import tempfile
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,8 +20,8 @@ QT_USERNAME = os.getenv("QT_USERNAME")
 QT_PASSWORD = os.getenv("QT_PASSWORD")
 
 SPREADSHEET_ID = "1KuPDV7I_mW65-wXugX9b7paA1T6BCqn7prkN67KG--Y"
-SHEET_NAME = "Sheet1"
-FOLDER_ID = "1PvBhOF2a1f8Vz4xf6Jc_T5sj8uOY11Xi"
+SHEET_NAME = "ECG_Consent"
+FOLDER_ID = "1omD_So7E-hTouZl37zXj-GBtl8Ni-_KE"
 
 # ========================
 # Paths / Folders
@@ -30,10 +30,13 @@ BASE_DIR = os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))
 )  # points to src/ecg_service
 DATA_DIR = os.path.join(BASE_DIR, "data")
-TEMP_DIR = os.path.join(BASE_DIR, "TEMP")
+# TEMP_DIR = os.path.join(BASE_DIR, "TEMP")
+
+TEMP_DIR_OBJ = tempfile.TemporaryDirectory()
+TEMP_DIR = TEMP_DIR_OBJ.name
 
 os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(TEMP_DIR, exist_ok=True)
+# os.makedirs(TEMP_DIR, exist_ok=True)
 
 SEEN_IDS_FILE = os.path.join(DATA_DIR, "seen_ids.json")
 PASSWORD_DB = os.path.join(DATA_DIR, "passwords.db")
@@ -64,14 +67,8 @@ CSV_URL = f"{HOSTNAME}/api/v1/patient-information-entities/import"
 # Service Settings
 # ========================
 POLL_INTERVAL = 60  # in seconds
-# LOGLEVEL = "DEBUG"
 
 
 # ========================
 # Helper Functions
 # ========================
-# def csv_file_for_date(date=None):
-#     """Return CSV path for a specific date (defaults to today)."""
-#     if date is None:
-#         date = datetime.date.today()
-#     return os.path.join(DATA_DIR, f"{date}.csv")

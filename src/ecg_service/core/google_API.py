@@ -9,7 +9,14 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from ecg_service.config import BASE_DIR, DATA_DIR, CSV_PATH
+from ecg_service.config import (
+    BASE_DIR,
+    DATA_DIR,
+    CSV_PATH,
+    SPREADSHEET_ID,
+    FOLDER_ID,
+    SHEET_NAME,
+)
 from ecg_service.utils import logging_config
 from ecg_service.core.patient_creation import upload_csv
 from ecg_service.core.token_manager import with_token_refresh
@@ -21,9 +28,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
-SPREADSHEET_ID = "1KuPDV7I_mW65-wXugX9b7paA1T6BCqn7prkN67KG--Y"
-SHEET_NAME = "Sheet1"
-FOLDER_ID = "1PvBhOF2a1f8Vz4xf6Jc_T5sj8uOY11Xi"
 
 
 AUTH_DIR = os.path.join(BASE_DIR, "auth")

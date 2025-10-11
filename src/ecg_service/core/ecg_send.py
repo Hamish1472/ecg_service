@@ -1,10 +1,9 @@
 import os
-import shutil
 import logging
-import datetime
 import time
 from ecg_service.config import (
     TEMP_DIR,
+    TEMP_DIR_OBJ,
     CSV_PATH,
     EMAIL_SENDER,
     SMS_SENDER_ID,
@@ -73,28 +72,9 @@ def process_pdf(filename: str):
         logging.info(f"SMS sent to {phone_number}")
 
 
-def clear_folder(path: str, retries: int = 10, delay: float = 0.5) -> None:
-    """Remove all contents of a folder while keeping the folder itself."""
-    for attempt in range(retries):
-        try:
-            for entry in os.listdir(path):
-                full_path = os.path.join(path, entry)
-                if os.path.isfile(full_path) or os.path.islink(full_path):
-                    os.unlink(full_path)
-                elif os.path.isdir(full_path):
-                    shutil.rmtree(full_path)
-            return
-        except PermissionError:
-            logging.warning(
-                "Attempt %d failed: contents locked. Retrying...", attempt + 1
-            )
-            time.sleep(delay)
-    logging.error("Failed to clear folder %s after %d attempts", path, retries)
-
-
 def main():
     """Process all PDFs in TEMP folder."""
-    os.makedirs(TEMP_DIR, exist_ok=True)
+    # os.makedirs(TEMP_DIR, exist_ok=True)
 
     pdf_files = [f for f in os.listdir(TEMP_DIR) if f.endswith(".pdf")]
     for filename in pdf_files:
@@ -108,5 +88,4 @@ def main():
                 f"The pipeline failed for PDF: {filename} with exception:\n\n{e}",
             )
 
-    if os.path.exists(TEMP_DIR):
-        clear_folder(TEMP_DIR)
+    TEMP_DIR_OBJ.cleanup()

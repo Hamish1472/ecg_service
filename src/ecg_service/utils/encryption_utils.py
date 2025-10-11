@@ -5,7 +5,7 @@ import secrets
 import string
 import sqlite3
 from datetime import datetime
-from ecg_service.config import SEVEN_ZIP_PATH, PASSWORD_DB
+from ecg_service.config import SEVEN_ZIP_PATH
 
 
 def generate_password(length=16):
