@@ -16,7 +16,6 @@ from ecg_service.core.patient_creation import upload_csv
 from ecg_service.core.token_manager import TokenManager
 from ecg_service.core.clubs import all_club_configs
 
-logging_config.setup_logging()
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -141,30 +140,32 @@ def delete_old_rows(sheet, days_old=30):
 #     return upload_csv(access_token, hostname, csv_path)
 
 
-def run_google_sync(stop_event):
+def run_google_sync(stop_event, log_queue):
     """Main loop: sync each club's sheet to CSV and upload."""
+    logging_config.setup_logging(log_queue)
     creds = authenticate()
-    clubs = all_club_configs()
     os.makedirs(DATA_DIR, exist_ok=True)
     logging.info("Google Sheets multi-club sync started...")
 
-    while not stop_event.is_set():
-        for club_name, club_config in clubs.items():
-            try:
-                sheet, drive = get_sheet_and_drive(
-                    creds, club_config["spreadsheet_id"], club_config["sheet_name"]
-                )
-                csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
-                delete_old_rows(sheet)
-                clean_drive_folder(drive, club_config["folder_id"])
-                sync_sheet(sheet, csv_path)
+    try:
+        while not stop_event.is_set():
+            clubs = all_club_configs()
+            for club_name, club_config in clubs.items():
+                try:
+                    sheet, drive = get_sheet_and_drive(
+                        creds, club_config["spreadsheet_id"], club_config["sheet_name"]
+                    )
+                    csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
+                    delete_old_rows(sheet)
+                    clean_drive_folder(drive, club_config["folder_id"])
+                    sync_sheet(sheet, csv_path)
 
-                token_manager = TokenManager(club_name)
-                access_token = token_manager.get_token()
+                    token_manager = TokenManager(club_name)
+                    access_token = token_manager.get_token()
 
-                upload_csv(access_token, club_config["hostname"], csv_path)
-            except Exception as e:
-                logging.error(f"{club_name}: sync error {e}")
-        time.sleep(5)
-
-    logging.info("Google Sheets sync stopped gracefully.")
+                    upload_csv(access_token, club_config["hostname"], csv_path)
+                except Exception as e:
+                    logging.error(f"{club_name}: sync error {e}")
+            stop_event.wait(5)
+    except KeyboardInterrupt:
+        logging.info("Google Sheets sync stopped gracefully.")

@@ -1,6 +1,5 @@
 import os
 import logging
-import time
 from ecg_service.config import (
     TEMP_DIR,
     TEMP_DIR_OBJ,
@@ -11,7 +10,7 @@ from ecg_service.config import (
 from ecg_service.utils import csv_utils, email_utils, encryption_utils, sms_utils
 
 
-def process_pdf(filename: str, csv_path: str):
+def process_pdf(filename: str, csv_path: str, stop_event=None):
     """Encrypt, zip, and send a single PDF using club CSV."""
     pdf_path = os.path.join(TEMP_DIR, filename)
     email = os.path.splitext(filename)[0]
@@ -21,7 +20,7 @@ def process_pdf(filename: str, csv_path: str):
 
     wait = 0
     while not os.path.exists(csv_path) and wait < 30:
-        time.sleep(1)
+        stop_event.wait(1)
         wait += 1
 
     phone = csv_utils.get_phone_number_from_email(csv_path, email)
@@ -57,7 +56,7 @@ def process_pdf(filename: str, csv_path: str):
         logging.info(f"SMS sent to {phone}")
 
 
-def process_club_pdfs(club_name: str, csv_path: str):
+def process_club_pdfs(club_name: str, csv_path: str, stop_event=None):
     """Process all PDFs in TEMP_DIR for one club."""
     logging.info(f"Processing PDFs for {club_name}")
 
@@ -65,7 +64,7 @@ def process_club_pdfs(club_name: str, csv_path: str):
         if not f.endswith(".pdf"):
             continue
         try:
-            process_pdf(f, csv_path)
+            process_pdf(f, csv_path, stop_event)
         except Exception as e:
             logging.exception(f"{club_name}: PDF error {f}: {e}")
             email_utils.send_email(

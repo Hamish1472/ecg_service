@@ -15,10 +15,8 @@ class TokenManager:
     """
     Per-club token lifecycle manager.
     Handles caching, expiry, persistence, and safe refresh.
-    Each club has its own token file: DATA_DIR/access_token_<club>.json
+    Each club has its own token file: AUTH_DIR/access_token_<club>.json
     """
-
-    _global_lock = Lock()  # optional safety across processes
 
     def __init__(self, club_name: str):
         self.club_name = club_name
@@ -63,7 +61,7 @@ class TokenManager:
 
         self._token = response["access_token"]
         self._token_type = response.get("token_type", "Bearer")
-        self._expiry = time.time() + response.get("expires_in", 3600)
+        self._expiry = time.time() + response.get("expires_in", 3600) - 60
         self._save_to_disk()
         return f"{self._token_type} {self._token}"
 
@@ -76,8 +74,10 @@ class TokenManager:
                 "expiry": self._expiry,
             }
             os.makedirs(os.path.dirname(self._cache_path), exist_ok=True)
-            with open(self._cache_path, "w") as f:
+            tmp_path = self._cache_path + ".tmp"
+            with open(tmp_path, "w") as f:
                 json.dump(data, f)
+            os.replace(tmp_path, self._cache_path)
         except Exception as e:
             logging.warning(f"[{self.club_name}] Failed to save token cache: {e}")
 
@@ -95,35 +95,3 @@ class TokenManager:
         except Exception as e:
             logging.warning(f"[{self.club_name}] Failed to load token cache: {e}")
             return False
-
-
-# ----------------------------
-# Decorator for token reuse
-# ----------------------------
-def with_token_refresh(func):
-    """
-    Decorator for API calls needing a valid token.
-    Expects first argument to be club_name.
-    Automatically refreshes and retries on 401.
-    """
-
-    @wraps(func)
-    def wrapper(club_name, *args, **kwargs):
-        manager = TokenManager(club_name)
-        token = manager.get_token()
-
-        try:
-            return func(token, club_name, *args, **kwargs)
-
-        except requests.HTTPError as e:
-            if e.response.status_code == 401:
-                logging.info(f"[{club_name}] Token expired. Refreshing...")
-                token = manager.refresh_token()
-                return func(token, club_name, *args, **kwargs)
-            raise
-
-        except Exception as e:
-            logging.error(f"[{club_name}] API call failed: {e}")
-            raise
-
-    return wrapper
