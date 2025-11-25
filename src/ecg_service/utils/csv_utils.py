@@ -84,3 +84,10 @@ def format_consent_csv(input_csv_path: str, output_csv_path: str):
     )
 
     new_df.to_csv(output_csv_path, index=False)
+
+
+if __name__ == "__main__":
+    format_consent_csv(
+        "E:\\Programming\\Python\\ecg_service\\_misc\\input.csv",
+        "E:\\Programming\\Python\\ecg_service\\_misc\\output.csv",
+    )

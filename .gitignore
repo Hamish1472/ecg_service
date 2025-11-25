@@ -17,6 +17,7 @@ src/ecg_service.egg-info/
 
 # === TEMPORARY / CACHED FILES ===
 TEMP/
+tmp/
 __pycache__/
 *.py[cod]
 *.log

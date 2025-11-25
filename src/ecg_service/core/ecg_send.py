@@ -1,8 +1,9 @@
 import os
 import logging
+from threading import Event
 from ecg_service.config import (
     TEMP_DIR,
-    TEMP_DIR_OBJ,
+    # TEMP_DIR_OBJ,
     EMAIL_SENDER,
     SMS_SENDER_ID,
     PASSWORD_DB,
@@ -10,7 +11,7 @@ from ecg_service.config import (
 from ecg_service.utils import csv_utils, email_utils, encryption_utils, sms_utils
 
 
-def process_pdf(filename: str, csv_path: str, stop_event=None):
+def process_pdf(filename: str, csv_path: str, stop_event: Event):
     """Encrypt, zip, and send a single PDF using club CSV."""
     pdf_path = os.path.join(TEMP_DIR, filename)
     email = os.path.splitext(filename)[0]
@@ -56,7 +57,7 @@ def process_pdf(filename: str, csv_path: str, stop_event=None):
         logging.info(f"SMS sent to {phone}")
 
 
-def process_club_pdfs(club_name: str, csv_path: str, stop_event=None):
+def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event):
     """Process all PDFs in TEMP_DIR for one club."""
     logging.info(f"Processing PDFs for {club_name}")
 
@@ -73,4 +74,4 @@ def process_club_pdfs(club_name: str, csv_path: str, stop_event=None):
                 f"Error processing {f}:\n{e}",
             )
 
-    TEMP_DIR_OBJ.cleanup()
+    # TEMP_DIR_OBJ.cleanup()

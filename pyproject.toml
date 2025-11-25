@@ -12,23 +12,21 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "requests",
-    "gspread",
-    "google-auth-oauthlib",
-    "google-api-python-client",
-    "python-dotenv",
-    "py7zr",
-    "vonage",
+    "requests>=2.32.4,<3.0.0",
+    "gspread>=6.2.1,<7.0.0",
+    "google-auth-oauthlib>=1.2.2,<2.0.0",
+    "google-api-python-client>=2.184.0,<3.0.0",
+    "python-dotenv>=1.1.1,<2.0.0",
+    "py7zr>=1.0.0,<2.0.0",
+    "vonage>=4.4.3,<5.0.0",
 ]
 
+
 [project.scripts]
-run = "ecg_service.main:main"
+run_ecg = "ecg_service.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-
-[tool.setuptools.package-data]
-"ecg_service" = ["auth/*", "data/*", "logs/*"]
 
 [tool.black]
 line-length = 88

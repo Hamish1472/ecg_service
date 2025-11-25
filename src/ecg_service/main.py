@@ -2,11 +2,14 @@ import logging
 import sys
 from multiprocessing import Process, Event
 from time import sleep
+import shutil
 
 from ecg_service.core.poller import run_poller
 from ecg_service.core.google_API import run_google_sync
 from ecg_service.utils import logging_config
-from ecg_service.config import TEMP_DIR_OBJ
+from ecg_service.config import TEMP_DIR
+
+# from ecg_service.config import TEMP_DIR_OBJ
 
 
 def supervise(name: str, target, stop_event, log_queue, restart_delay: int = 5):
@@ -76,8 +79,9 @@ def main():
         sys.exit(1)
 
     finally:
-        TEMP_DIR_OBJ.cleanup()
-        logging.info("Temporary directories cleaned.")
+        shutil.rmtree(TEMP_DIR)
+        # TEMP_DIR_OBJ.cleanup()
+        # logging.info("Temporary directories cleaned.")
         logging.info("Shutdown complete.")
         logging_config.stop_listener()
 

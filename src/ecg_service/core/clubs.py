@@ -2,11 +2,11 @@ import os
 import logging
 import csv
 import json
-from ecg_service.config import CLUBS_CONFIG_PATH, TEMP_DIR_OBJ
+from ecg_service.config import CLUBS_CONFIG_PATH, TEMP_DIR
 
 from threading import Lock
 
-CACHE_FILE = os.path.join(TEMP_DIR_OBJ.name, "seen_clubs.json")
+CACHE_FILE = os.path.join(TEMP_DIR, "seen_clubs.json")
 _cache_lock = Lock()
 
 
