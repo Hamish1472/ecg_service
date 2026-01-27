@@ -21,7 +21,7 @@ def get_phone_number_from_email(csv_file_path, target_email):
             ):
                 return parse_international_phone_number(phone)
 
-    return "Not found"
+    return
 
 
 def parse_international_phone_number(phone_number):
@@ -88,6 +88,6 @@ def format_consent_csv(input_csv_path: str, output_csv_path: str):
 
 if __name__ == "__main__":
     format_consent_csv(
-        "E:\\Programming\\Python\\ecg_service\\_misc\\input.csv",
-        "E:\\Programming\\Python\\ecg_service\\_misc\\output.csv",
+        "C:\\Users\\Hamish\\Documents\\Programming\\Python\\ecg_service\\_misc\\input.csv",
+        "C:\\Users\\Hamish\\Documents\\Programming\\Python\\ecg_service\\_misc\\output.csv",
     )

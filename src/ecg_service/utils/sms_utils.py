@@ -3,7 +3,9 @@ from vonage_sms import SmsMessage, SmsResponse
 from ecg_service.config import VONAGE_API_KEY, VONAGE_API_SECRET, EMAIL_SENDER
 
 
-def send_sms(phone_number: str, password: str, sender_id: str = "Cardiologic"):
+def send_sms(
+    phone_number: str, filename: str, password: str, sender_id: str = "Cardiologic"
+):
     """
     Sends a password via SMS using Vonage.
 
@@ -18,12 +20,13 @@ def send_sms(phone_number: str, password: str, sender_id: str = "Cardiologic"):
         to=phone_number,
         from_=sender_id,
         text=(
-            f"Do Not Reply\n\nPassword to PDF:\n\n{password}\n\n"
-            f"Please check your spam folder for an email from {EMAIL_SENDER} "
-            f"if you have not received the PDF"
+            f"Do Not Reply\n\nPassword to {filename}:\n\n{password}\n\n"
+            f"Please check for an email from {EMAIL_SENDER} "
         ),
-    )
+    )  # type: ignore
 
     response: SmsResponse = client.sms.send(message)
+    if SmsResponse["messages"][0]["status"] != "0":
+        print(f"Message failed with error: {SmsResponse['messages'][0]['error-text']}")
     # Log or return response if needed
     return response

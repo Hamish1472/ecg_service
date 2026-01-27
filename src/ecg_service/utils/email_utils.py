@@ -8,7 +8,7 @@ MAX_ATTACHMENT_SIZE_MB = 25
 MAX_ATTACHMENT_SIZE = MAX_ATTACHMENT_SIZE_MB * 1024 * 1024  # bytes
 
 
-def send_email(recipient: str, subject: str, body: str, attachment_path: str = None):
+def send_email(recipient: str, subject: str, body: str, attachment_path=None):
     """
     Sends an email with optional attachment.
 

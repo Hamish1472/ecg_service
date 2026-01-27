@@ -39,11 +39,23 @@ def download_pdf(hostname, access_token, sid, email):
         headers={"Authorization": access_token},
     )
     response.raise_for_status()
+
     os.makedirs(TEMP_DIR, exist_ok=True)
-    file_path = os.path.join(TEMP_DIR, f"{email}.pdf")
+
+    base = os.path.join(TEMP_DIR, f"{email}")
+    ext = ".pdf"
+    counter = 1
+    file_path = f"{base}_{counter}{ext}"
+
+    # Ensure unique filename
+    while os.path.exists(file_path) or os.path.exists(file_path.replace("pdf", "sent")):
+        counter += 1
+        file_path = f"{base}_{counter}{ext}"
+
     with open(file_path, "wb") as f:
         f.write(response.content)
-    logging.info(f"Downloaded report {sid}")
+
+    logging.info(f"Downloaded report {sid} to {file_path}")
 
 
 def _club_seen_ids_path(club_name: str) -> str:

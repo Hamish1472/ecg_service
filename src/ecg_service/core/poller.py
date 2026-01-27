@@ -49,7 +49,7 @@ def run_poller(stop_event: Event, log_queue):
                     s
                     for s in studies.get("studies", [])
                     if s.get("sid")
-                    and s.get("status") in [3, 4, 5, 6]
+                    and s.get("status") in [5, 6]
                     and s.get("sid") not in seen_ids
                 ]
 
@@ -66,9 +66,7 @@ def run_poller(stop_event: Event, log_queue):
                     sid = study["sid"]
                     email = study.get("patient_ie_mrn")
                     try:
-                        download_pdf(
-                            club_config["hostname"], access_token, sid, email
-                        )
+                        download_pdf(club_config["hostname"], access_token, sid, email)
                         ecg_send.process_club_pdfs(
                             club_name, csv_path, stop_event
                         )  # process PDFs, send email/SMS

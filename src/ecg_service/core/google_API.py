@@ -108,7 +108,7 @@ def sync_sheet(sheet, csv_file):
     return updated_rows
 
 
-def delete_old_rows(sheet, days_old=30):
+def delete_old_rows(sheet, days_old=60):
     """Delete Sheet rows older than days_old."""
     rows = sheet.get_all_values()
     if not rows or "Added Time" not in rows[0]:
@@ -156,8 +156,8 @@ def run_google_sync(stop_event, log_queue):
                         creds, club_config["spreadsheet_id"], club_config["sheet_name"]
                     )
                     csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
-                    delete_old_rows(sheet)
-                    clean_drive_folder(drive, club_config["folder_id"])
+                    # delete_old_rows(sheet)
+                    # clean_drive_folder(drive, club_config["folder_id"])
                     sync_sheet(sheet, csv_path)
 
                     token_manager = TokenManager(club_name)

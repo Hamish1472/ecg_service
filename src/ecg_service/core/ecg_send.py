@@ -1,5 +1,7 @@
 import os
 import logging
+import shutil
+import datetime
 from threading import Event
 from ecg_service.config import (
     TEMP_DIR,
@@ -14,9 +16,9 @@ from ecg_service.utils import csv_utils, email_utils, encryption_utils, sms_util
 def process_pdf(filename: str, csv_path: str, stop_event: Event):
     """Encrypt, zip, and send a single PDF using club CSV."""
     pdf_path = os.path.join(TEMP_DIR, filename)
-    email = os.path.splitext(filename)[0]
-    archive = f"{email}.7z"
-    archive_path = os.path.join(TEMP_DIR, archive)
+    # output_path = os.path.join(TEMP_DIR, "encrypted_" + filename)
+    email = os.path.splitext(filename)[0].rsplit("_", 1)[0]
+
     password = encryption_utils.generate_password()
 
     wait = 0
@@ -25,36 +27,33 @@ def process_pdf(filename: str, csv_path: str, stop_event: Event):
         wait += 1
 
     phone = csv_utils.get_phone_number_from_email(csv_path, email)
-    encryption_utils.compress_pdf(pdf_path, archive_path, password)
-    encryption_utils.store_password(PASSWORD_DB, archive, password)
 
-    zip_name = f"{email}.zip"
-    zip_path = os.path.join(TEMP_DIR, zip_name)
-    encryption_utils.zip_archive(archive_path, zip_path)
+    if not phone:
+        try:
+            os.remove(pdf_path)
+        except:
+            logging.error(f"Failed to remove: {pdf_path}")
+        return
 
-    base_body = (
-        "Please find your encrypted PDF archive attached.\n"
-        "To access the PDF please follow these steps:\n"
-        "    - Download and install 7zip from https://www.7-zip.org/download.html\n"
-        "    - Open the .zip attachment, click 'Extract all'\n"
-        "    - In the extracted folder, right-click on the .7z file → 7-zip → Open Archive\n"
-        "    - Enter the password sent via SMS\n"
-        "    - Double-click to open the PDF\n"
-    )
-    password_info = (
-        "Phone number not found. Please contact us for the password."
-        if phone == "Not found"
-        else "Password sent to provided contact number."
-    )
+    encryption_utils.encrypt_pdf(pdf_path, password)
+    encryption_utils.store_password(PASSWORD_DB, filename, password)
+
+    base_body = "Please find your encrypted PDF attached.\n"
+    password_info = "Password sent to provided contact number.\n"
 
     full_body = base_body + password_info
 
-    email_utils.send_email(email, "Encrypted PDF Archive", full_body, zip_path)
+    email_utils.send_email(email, "ECG Report - Encrypted PDF", full_body, pdf_path)
     logging.info(f"Email sent to {email}")
 
-    if phone != "Not found":
-        sms_utils.send_sms(phone, password, SMS_SENDER_ID)
+    if phone:
+        sms_utils.send_sms(phone, filename, password, SMS_SENDER_ID)
         logging.info(f"SMS sent to {phone}")
+
+    with open("C:\\Users\\Hamish\\Documents\\Cardiologic\\Send_Log.txt", "a") as f:
+        f.write(f"\n{str(datetime.datetime.now())} - {email} - {phone}")
+
+    os.rename(pdf_path, pdf_path.replace("pdf", "sent"))
 
 
 def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event):
@@ -62,10 +61,14 @@ def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event):
     logging.info(f"Processing PDFs for {club_name}")
 
     for f in os.listdir(TEMP_DIR):
+        # if f.endswith(".sent"):
+        #     os.remove(f)
         if not f.endswith(".pdf"):
             continue
+        # print(f)
         try:
             process_pdf(f, csv_path, stop_event)
+            # os.remove(f)
         except Exception as e:
             logging.exception(f"{club_name}: PDF error {f}: {e}")
             email_utils.send_email(
