@@ -50,8 +50,8 @@ def process_pdf(filename: str, csv_path: str, stop_event: Event):
         sms_utils.send_sms(phone, filename, password, SMS_SENDER_ID)
         logging.info(f"SMS sent to {phone}")
 
-    with open("C:\\Users\\Hamish\\Documents\\Cardiologic\\Send_Log.txt", "a") as f:
-        f.write(f"\n{str(datetime.datetime.now())} - {email} - {phone}")
+    # with open("C:\\Users\\Hamish\\Documents\\Cardiologic\\Send_Log.txt", "a") as f:
+    #     f.write(f"\n{str(datetime.datetime.now())} - {email} - {phone}")
 
     os.rename(pdf_path, pdf_path.replace("pdf", "sent"))
 
