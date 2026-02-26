@@ -26,7 +26,4 @@ def send_sms(
     )  # type: ignore
 
     response: SmsResponse = client.sms.send(message)
-    if SmsResponse["messages"][0]["status"] != "0":
-        print(f"Message failed with error: {SmsResponse['messages'][0]['error-text']}")
-    # Log or return response if needed
     return response

@@ -61,8 +61,13 @@ def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event):
     logging.info(f"Processing PDFs for {club_name}")
 
     for f in os.listdir(TEMP_DIR):
-        # if f.endswith(".sent"):
-        #     os.remove(f)
+        if f.endswith(".sent"):
+            try:
+                os.remove(os.path.join(TEMP_DIR, f))
+            except:
+                logging.error(
+                    f"Failed to remove temp file: {os.path.join(TEMP_DIR, f)}"
+                )
         if not f.endswith(".pdf"):
             continue
         # print(f)

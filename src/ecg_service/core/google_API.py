@@ -159,10 +159,8 @@ def run_google_sync(stop_event, log_queue):
                     # delete_old_rows(sheet)
                     # clean_drive_folder(drive, club_config["folder_id"])
                     sync_sheet(sheet, csv_path)
-
                     token_manager = TokenManager(club_name)
                     access_token = token_manager.get_token()
-
                     upload_csv(access_token, club_config["hostname"], csv_path)
                 except Exception as e:
                     logging.error(f"{club_name}: sync error {e}")
