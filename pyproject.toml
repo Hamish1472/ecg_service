@@ -6,27 +6,36 @@ build-backend = "setuptools.build_meta"
 name = "ecg-service"
 version = "1.0.0"
 description = "Automated ECG report fetching, encryption, and delivery system."
-authors = [
-    { name = "Hamish Dixon", email = "hamish1472@gmail.com" }
-]
+authors = [{ name = "Hamish Dixon", email = "hamish1472@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.10"
+# dependencies = [
+#     "requests>=2.32.4,<3.0.0",
+#     "gspread>=6.2.1,<7.0.0",
+#     "google-auth-oauthlib>=1.2.2,<2.0.0",
+#     "google-api-python-client>=2.184.0,<3.0.0",
+#     "python-dotenv>=1.1.1,<2.0.0",
+#     "py7zr>=1.0.0,<2.0.0",
+#     "vonage>=4.4.3,<5.0.0",
+# ]
 dependencies = [
-    "requests>=2.32.4,<3.0.0",
-    "gspread>=6.2.1,<7.0.0",
-    "google-auth-oauthlib>=1.2.2,<2.0.0",
-    "google-api-python-client>=2.184.0,<3.0.0",
-    "python-dotenv>=1.1.1,<2.0.0",
-    "py7zr>=1.0.0,<2.0.0",
-    "vonage>=4.4.3,<5.0.0",
+    "python-dotenv",
+    "vonage",
+    "vonage-sms",
+    "phonenumbers",
+    "pandas",
+    "requests",
+    "gspread",
+    "google-auth",
+    "google-auth-oauthlib",
+    "google-api-python-client",
 ]
-
 
 [project.scripts]
 run_ecg = "ecg_service.main:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.black]
 line-length = 88

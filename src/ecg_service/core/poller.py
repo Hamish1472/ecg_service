@@ -4,7 +4,7 @@ import time
 from threading import Event
 
 from ecg_service.core import ecg_send
-from ecg_service.config import POLL_INTERVAL, DATA_DIR
+from ecg_service.config import POLL_INTERVAL, DATA_DIR, TEMP_DIR
 from ecg_service.core.token_manager import TokenManager
 from ecg_service.core.studies import (
     fetch_all_studies,
@@ -77,6 +77,14 @@ def run_poller(stop_event: Event, log_queue):
                         logging.exception(
                             f"[{club_name}] Failed processing study {sid}: {e}"
                         )
+                for f in os.listdir(TEMP_DIR):
+                    if f.endswith(".sent"):
+                        try:
+                            os.remove(os.path.join(TEMP_DIR, f))
+                        except:
+                            logging.error(
+                                f"Failed to remove temp file: {os.path.join(TEMP_DIR, f)}"
+                            )
 
             # Reset error counter on successful loop
             error_count = 0
