@@ -35,6 +35,3 @@ def send_sms(
     send_email(EMAIL_SENDER, "SMS send error", f"SMS failed for {phone_number}")
 
     return False
-
-
-pass
