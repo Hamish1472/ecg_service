@@ -29,6 +29,8 @@ def send_sms(
 
     for attempt in range(5):
         response: SmsResponse = client.sms.send(message)
+        if not response.messages:
+            break
         if response.messages[0].status == "0":
             return True
         time.sleep(3)
