@@ -1,6 +1,8 @@
+import time
 from vonage import Auth, Vonage
 from vonage_sms import SmsMessage, SmsResponse
 from ecg_service.config import VONAGE_API_KEY, VONAGE_API_SECRET, EMAIL_SENDER
+from ecg_service.utils.email_utils import send_email
 
 
 def send_sms(
@@ -25,5 +27,11 @@ def send_sms(
         ),
     )  # type: ignore
 
-    response: SmsResponse = client.sms.send(message)
-    return response
+    for attempt in range(5):
+        response: SmsResponse = client.sms.send(message)
+        if response.messages[0].status == "0":
+            return True
+        time.sleep(3)
+    send_email(EMAIL_SENDER, "SMS send error", f"SMS failed for {phone_number}")
+
+    return False
