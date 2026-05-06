@@ -16,6 +16,11 @@ from ecg_service.core.clubs import all_club_configs
 from ecg_service.utils import logging_config
 
 
+# Backoff configuration
+_BACKOFF_BASE = 10       # seconds for first failure
+_BACKOFF_FACTOR = 2      # multiplier per consecutive failure
+_BACKOFF_MAX = 300       # cap at 5 minutes
+
 def run_poller(stop_event: Event, log_queue):
     """
     Polls each club's API for new completed ECG studies and triggers
@@ -29,13 +34,13 @@ def run_poller(stop_event: Event, log_queue):
     while not stop_event.is_set():
         try:
             clubs = all_club_configs()
-            logging.info(f"Loaded {len(clubs)} club configurations")
+            # logging.info(f"Loaded {len(clubs)} club configurations")
 
             for club_name, club_config in clubs.items():
                 if stop_event.is_set():
                     break
                 csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
-                logging.info(f"Polling for club: {club_name}")
+                # logging.info(f"Polling for club: {club_name}")
 
                 # Maintain a separate seen file per club
                 seen_ids = load_seen_ids(club_name)
@@ -54,7 +59,7 @@ def run_poller(stop_event: Event, log_queue):
                 ]
 
                 if not new_reports:
-                    logging.info(f"[{club_name}] No new reports.")
+                    # logging.info(f"[{club_name}] No new reports.")
                     continue
 
                 logging.info(f"[{club_name}] {len(new_reports)} new reports found.")
@@ -88,17 +93,17 @@ def run_poller(stop_event: Event, log_queue):
 
             # Reset error counter on successful loop
             error_count = 0
-            logging.info(f"Sleeping for {POLL_INTERVAL}s...")
+            # logging.info(f"Sleeping for {POLL_INTERVAL}s...")
             stop_event.wait(POLL_INTERVAL)
 
         except KeyboardInterrupt:
             logging.info("ECG Poller stopped gracefully.")
 
         except Exception as e:
-            logging.exception(f"Polling error: {e}")
             error_count += 1
-            if error_count >= 5:
-                logging.error("Multiple polling failures, pausing before retry")
-                stop_event.wait(10)
-            else:
-                stop_event.wait(1)
+            wait = min(_BACKOFF_BASE * (_BACKOFF_FACTOR ** (error_count - 1)), _BACKOFF_MAX)
+            logging.exception(f"Polling error: {e}")
+            logging.warning(
+                f"Consecutive failure #{error_count}. Retrying in {wait}s."
+            )
+            stop_event.wait(wait)

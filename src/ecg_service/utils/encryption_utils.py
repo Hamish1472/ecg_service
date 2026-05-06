@@ -19,7 +19,7 @@ def generate_password(length: int = 16) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def store_password(db_path, filename, password):
+def store_password(db_path, filename, password, phone_number):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute(
@@ -27,16 +27,17 @@ def store_password(db_path, filename, password):
         CREATE TABLE IF NOT EXISTS passwords (
             filename TEXT PRIMARY KEY,
             password TEXT NOT NULL,
-            timestamp TEXT NOT NULL
+            timestamp TEXT NOT NULL,
+            phone_number TEXT
         )
     """
     )
     c.execute(
         """
-        INSERT OR REPLACE INTO passwords (filename, password, timestamp)
-        VALUES (?, ?, ?)
+        INSERT OR REPLACE INTO passwords (filename, password, timestamp, phone_number)
+        VALUES (?, ?, ?, ?)
     """,
-        (filename, password, datetime.now().isoformat()),
+        (filename, password, datetime.now().isoformat(), phone_number),
     )
     conn.commit()
     conn.close()

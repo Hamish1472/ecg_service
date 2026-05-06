@@ -1,7 +1,6 @@
 import os
 import csv
-import time
-import datetime
+import sqlite3
 import logging
 import pickle
 import gspread
@@ -10,7 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from ecg_service.config import DATA_DIR, AUTH_DIR
+from ecg_service.config import DATA_DIR, AUTH_DIR, PASSWORD_DB
 from ecg_service.utils import logging_config
 from ecg_service.core.patient_creation import upload_csv
 from ecg_service.core.token_manager import TokenManager
@@ -22,6 +21,24 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+def sync_db_to_sheet(sheet, db_path):
+    """Sync PDF password records from SQLite to a Google Sheet."""
+    try:
+        con = sqlite3.connect(db_path)
+        rows = con.execute(
+            "SELECT filename, password, phone_number, timestamp FROM passwords"
+        ).fetchall()
+        con.close()
+    except Exception as e:
+        logging.error(f"Failed to read database: {e}")
+        return
+
+    try:
+        new_values = [["Filename", "Password", "Phone", "Timestamp"], *[list(row) for row in rows]]
+        sheet.update(range_name="A1", values=new_values)
+        # logging.info(f"PDF sheet synced: {len(rows)} rows written.")
+    except Exception as e:
+        logging.error(f"Failed to write to PDF sheet: {e}")
 
 def load_csv(csv_file):
     if os.path.exists(csv_file):
@@ -66,31 +83,31 @@ def get_sheet_and_drive(creds, spreadsheet_id, sheet_name):
     return sheet, drive_service
 
 
-def clean_drive_folder(drive_service, folder_id, days_old=30):
-    """Delete files older than days_old in Google Drive folder."""
-    try:
-        cutoff_date = (
-            datetime.datetime.now(datetime.timezone.utc)
-            - datetime.timedelta(days=days_old)
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+# def clean_drive_folder(drive_service, folder_id, days_old=30):
+#     """Delete files older than days_old in Google Drive folder."""
+#     try:
+#         cutoff_date = (
+#             datetime.datetime.now(datetime.timezone.utc)
+#             - datetime.timedelta(days=days_old)
+#         ).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        query = f"'{folder_id}' in parents and modifiedTime < '{cutoff_date}' and trashed = false"
-        results = (
-            drive_service.files()
-            .list(q=query, spaces="drive", fields="files(id, name, modifiedTime)")
-            .execute()
-        )
+#         query = f"'{folder_id}' in parents and modifiedTime < '{cutoff_date}' and trashed = false"
+#         results = (
+#             drive_service.files()
+#             .list(q=query, spaces="drive", fields="files(id, name, modifiedTime)")
+#             .execute()
+#         )
 
-        for file in results.get("files", []):
-            try:
-                drive_service.files().delete(fileId=file["id"]).execute()
-                logging.info(
-                    f"Deleted Drive file '{file['name']}' (modified {file['modifiedTime']})"
-                )
-            except HttpError as e:
-                logging.error(f"Failed to delete Drive file {file['name']}: {e}")
-    except Exception as e:
-        logging.error(f"Drive cleanup error: {e}")
+#         for file in results.get("files", []):
+#             try:
+#                 drive_service.files().delete(fileId=file["id"]).execute()
+#                 logging.info(
+#                     f"Deleted Drive file '{file['name']}' (modified {file['modifiedTime']})"
+#                 )
+#             except HttpError as e:
+#                 logging.error(f"Failed to delete Drive file {file['name']}: {e}")
+#     except Exception as e:
+#         logging.error(f"Drive cleanup error: {e}")
 
 
 def sync_sheet(sheet, csv_file):
@@ -108,31 +125,31 @@ def sync_sheet(sheet, csv_file):
     return updated_rows
 
 
-def delete_old_rows(sheet, days_old=60):
-    """Delete Sheet rows older than days_old."""
-    rows = sheet.get_all_values()
-    if not rows or "Added Time" not in rows[0]:
-        return
+# def delete_old_rows(sheet, days_old=60):
+#     """Delete Sheet rows older than days_old."""
+#     rows = sheet.get_all_values()
+#     if not rows or "Added Time" not in rows[0]:
+#         return
 
-    idx = rows[0].index("Added Time")
-    now = datetime.datetime.now()
-    to_delete = []
-    for i, row in enumerate(rows[1:], start=2):
-        try:
-            if not row[idx]:
-                continue
-            added = datetime.datetime.strptime(row[idx], "%d/%m/%Y %H:%M:%S")
-            if (now - added).days > days_old:
-                to_delete.append(i)
-        except Exception as e:
-            logging.warning(f"Row {i}: invalid date - {e}")
+#     idx = rows[0].index("Added Time")
+#     now = datetime.datetime.now()
+#     to_delete = []
+#     for i, row in enumerate(rows[1:], start=2):
+#         try:
+#             if not row[idx]:
+#                 continue
+#             added = datetime.datetime.strptime(row[idx], "%d/%m/%Y %H:%M:%S")
+#             if (now - added).days > days_old:
+#                 to_delete.append(i)
+#         except Exception as e:
+#             logging.warning(f"Row {i}: invalid date - {e}")
 
-    for i in sorted(to_delete, reverse=True):
-        try:
-            sheet.delete_rows(i)
-            logging.info(f"Deleted old row {i}")
-        except Exception as e:
-            logging.error(f"Failed deleting row {i}: {e}")
+#     for i in sorted(to_delete, reverse=True):
+#         try:
+#             sheet.delete_rows(i)
+#             logging.info(f"Deleted old row {i}")
+#         except Exception as e:
+#             logging.error(f"Failed deleting row {i}: {e}")
 
 
 # @with_token_refresh
@@ -147,6 +164,11 @@ def run_google_sync(stop_event, log_queue):
     os.makedirs(DATA_DIR, exist_ok=True)
     logging.info("Google Sheets multi-club sync started...")
 
+    pdf_client = gspread.authorize(creds)
+    pdf_sheet = pdf_client.open_by_key(
+        "19oyQseaulZmVEnHuj-iqNChSSazRO_GxyrOZEcPo9KY"
+    ).worksheet("Sheet1")
+
     try:
         while not stop_event.is_set():
             clubs = all_club_configs()
@@ -159,11 +181,16 @@ def run_google_sync(stop_event, log_queue):
                     # delete_old_rows(sheet)
                     # clean_drive_folder(drive, club_config["folder_id"])
                     sync_sheet(sheet, csv_path)
+                except Exception as e:
+                    logging.error(f"Google CSV sync error: {e} --- for sheet_id: {club_config["spreadsheet_id"]}, sheet_name: {club_config["sheet_name"]}")
+                try:
                     token_manager = TokenManager(club_name)
                     access_token = token_manager.get_token()
-                    upload_csv(access_token, club_config["hostname"], csv_path)
+                    if csv_path:
+                        upload_csv(access_token, club_config["hostname"], csv_path)
                 except Exception as e:
-                    logging.error(f"{club_name}: sync error {e}")
+                    logging.error(f"{club_name}: QT sync error {e}")
+            sync_db_to_sheet(pdf_sheet, PASSWORD_DB)
             stop_event.wait(5)
     except KeyboardInterrupt:
         logging.info("Google Sheets sync stopped gracefully.")

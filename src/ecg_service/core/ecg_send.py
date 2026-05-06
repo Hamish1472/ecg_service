@@ -36,7 +36,7 @@ def process_pdf(filename: str, csv_path: str, stop_event: Event):
         return
 
     encryption_utils.encrypt_pdf(pdf_path, password)
-    encryption_utils.store_password(PASSWORD_DB, filename, password)
+    encryption_utils.store_password(PASSWORD_DB, filename, password, phone)
 
     base_body = "Please find your encrypted PDF attached.\n"
     password_info = "Password sent to provided contact number.\n"
@@ -58,7 +58,7 @@ def process_pdf(filename: str, csv_path: str, stop_event: Event):
 
 def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event):
     """Process all PDFs in TEMP_DIR for one club."""
-    logging.info(f"Processing PDFs for {club_name}")
+    # logging.info(f"Processing PDFs for {club_name}")
 
     for f in os.listdir(TEMP_DIR):
         #     if f.endswith(".sent"):
