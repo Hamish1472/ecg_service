@@ -31,19 +31,18 @@ def process_pdf(filename: str, csv_path: str, stop_event: Event):
     if not phone:
         try:
             os.remove(pdf_path)
-        except:
-            logging.error(f"Failed to remove: {pdf_path}")
+        except OSError as e:
+            logging.error(f"Failed to remove: {pdf_path}: {e}")
         return
 
     encryption_utils.encrypt_pdf(pdf_path, password)
     encryption_utils.store_password(PASSWORD_DB, filename, password, phone)
 
-    base_body = "Please find your encrypted PDF attached.\n"
-    password_info = "Password sent to provided contact number.\n"
+    body = "Please find your encrypted PDF attached.\nPassword sent to provided contact number.\n"
 
-    full_body = base_body + password_info
+    # full_body = base_body + password_info
 
-    email_utils.send_email(email, "ECG Report - Encrypted PDF", full_body, pdf_path)
+    email_utils.send_email(email, "ECG Report - Encrypted PDF", body, pdf_path)
     logging.info(f"Email sent to {email}")
 
     if phone:

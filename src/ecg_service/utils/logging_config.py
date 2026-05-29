@@ -22,7 +22,7 @@ def start_listener():
         log_filename,
         when="midnight",
         interval=1,
-        backupCount=30,
+        backupCount=60,
         encoding="utf-8",
     )
     file_handler.setFormatter(formatter)

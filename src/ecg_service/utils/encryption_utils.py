@@ -60,15 +60,15 @@ def encrypt_pdf(input_path, password):
     subprocess.run(cmd, check=True, cwd=pdf_dir)
 
 
-if __name__ == "__main__":
-    directory = (
-        "C:\\Users\\Hamish\\Documents\\Programming\\Python\\ecg_service\\_misc\\input"
-    )
-    for name in os.listdir(directory):
-        path = os.path.join(directory, name)
-        password = generate_password()
-        encrypt_pdf(path, password)
-        store_password(PASSWORD_DB, name, password)
+# if __name__ == "__main__":
+#     directory = (
+#         "C:\\Users\\Hamish\\Documents\\Programming\\Python\\ecg_service\\_misc\\input"
+#     )
+#     for name in os.listdir(directory):
+#         path = os.path.join(directory, name)
+#         password = generate_password()
+#         encrypt_pdf(path, password)
+#         store_password(PASSWORD_DB, name, password)
 
 # def compress_pdf(pdf_path, archive_path, password):
 #     pdf_dir = os.path.dirname(pdf_path)
