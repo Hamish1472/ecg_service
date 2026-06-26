@@ -33,7 +33,7 @@ def fetch_all_studies(hostname, access_token):
     return {"studies": all_studies}
 
 
-def download_pdf(hostname, access_token, sid, email):
+def download_pdf(hostname, club_name, access_token, sid, email):
     response = requests.get(
         get_endpoints(hostname)["PDF_URL"].format(sid=sid),
         headers={"Authorization": access_token},
@@ -44,13 +44,13 @@ def download_pdf(hostname, access_token, sid, email):
 
     base = os.path.join(TEMP_DIR, f"{email}")
     ext = ".pdf"
-    counter = 1
-    file_path = f"{base}_{counter}{ext}"
+    # counter = 1
+    file_path = f"{base}_{sid}{ext}"
 
     # Ensure unique filename
-    while os.path.exists(file_path) or os.path.exists(file_path.replace("pdf", "sent")):
-        counter += 1
-        file_path = f"{base}_{counter}{ext}"
+    # while os.path.exists(file_path) or os.path.exists(file_path.replace("pdf", "sent")):
+    #     # counter += 1
+    #     file_path = f"{base}_{sid}{ext}"
 
     with open(file_path, "wb") as f:
         f.write(response.content)

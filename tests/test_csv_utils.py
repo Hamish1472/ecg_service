@@ -1,7 +1,7 @@
 import pytest
 import csv
 from ecg_service.utils.csv_utils import (
-    get_phone_number_from_email,
+    get_col_from_email,
     parse_international_phone_number,
 )
 
@@ -43,12 +43,12 @@ def test_get_phone_number_from_email(tmp_path):
         )
 
     # Valid email
-    result = get_phone_number_from_email(str(csv_file), "john@example.com")
+    result = get_col_from_email(str(csv_file), "john@example.com")
     assert result == "+447368166834"
 
-    result = get_phone_number_from_email(str(csv_file), "jane@example.com")
+    result = get_col_from_email(str(csv_file), "jane@example.com")
     assert result == "+12125551212"
 
     # Invalid email
-    result = get_phone_number_from_email(str(csv_file), "nobody@example.com")
+    result = get_col_from_email(str(csv_file), "nobody@example.com")
     assert result == "Not found"

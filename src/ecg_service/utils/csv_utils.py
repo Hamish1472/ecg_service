@@ -3,23 +3,35 @@ import phonenumbers
 import pandas as pd
 
 
-def get_phone_number_from_email(csv_file_path, target_email):
+def get_col_from_email(col_type, csv_file_path, target_email):
     """
-    Looks up a phone number by email from a CSV file.
-    Returns E.164 formatted number or 'Not found'.
+    Looks up a column by email from a CSV file.
+    Phone: Returns E.164 formatted number or 'Not found'.
+    Name: Returns P/G name or Patient name.
     """
     with open(csv_file_path, mode="r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         for row in reader:
             email = row.get("Email")
-            phone = row.get("Phone")
-
-            if (
-                email
-                and phone
-                and email.strip().lower() == target_email.strip().lower()
-            ):
-                return parse_international_phone_number(phone)
+            match col_type:
+                case "Phone":
+                    col = row.get("Phone")
+                    if (
+                        email
+                        and col
+                        and email.strip().lower() == target_email.strip().lower()
+                    ):
+                        return parse_international_phone_number(col)
+                case "Name":
+                    col = row.get("Parent/Guardian Name")
+                    if not col:
+                        col = row.get("Patient Name")
+                    if (
+                        email
+                        and col
+                        and email.strip().lower() == target_email.strip().lower()
+                    ):
+                        return col.replace(",","").upper()
 
     return
 

@@ -49,3 +49,6 @@ def send_email(recipient: str, subject: str, body: str, attachment_path=None):
         smtp.starttls()
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
+
+if __name__ == "__main__":
+    send_email(EMAIL_SENDER,"test","body")

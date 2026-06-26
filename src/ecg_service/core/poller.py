@@ -4,7 +4,7 @@ import time
 from threading import Event
 
 from ecg_service.core import ecg_send
-from ecg_service.config import POLL_INTERVAL, DATA_DIR, TEMP_DIR
+from ecg_service.config import EMAIL_SENDER, POLL_INTERVAL, DATA_DIR, TEMP_DIR
 from ecg_service.core.token_manager import TokenManager
 from ecg_service.core.studies import (
     fetch_all_studies,
@@ -13,13 +13,13 @@ from ecg_service.core.studies import (
     save_seen_ids,
 )
 from ecg_service.core.clubs import all_club_configs
-from ecg_service.utils import logging_config
-
+from ecg_service.utils import email_utils, logging_config
 
 # Backoff configuration
-_BACKOFF_BASE = 10       # seconds for first failure
-_BACKOFF_FACTOR = 2      # multiplier per consecutive failure
-_BACKOFF_MAX = 300       # cap at 5 minutes
+_BACKOFF_BASE = 10  # seconds for first failure
+_BACKOFF_FACTOR = 2  # multiplier per consecutive failure
+_BACKOFF_MAX = 300  # cap at 5 minutes
+
 
 def run_poller(stop_event: Event, log_queue):
     """
@@ -70,14 +70,33 @@ def run_poller(stop_event: Event, log_queue):
 
                     sid = study["sid"]
                     email = study.get("patient_ie_mrn")
+                    # try:
+                    #     download_pdf(club_config["hostname"], access_token, sid, email)
+                    #     ecg_send.process_club_pdfs(
+                    #         club_name, csv_path, stop_event
+                    #     )  # process PDFs, send email/SMS
+                    #     seen_ids.add(sid)
+                    #     save_seen_ids(club_name, seen_ids)
+                    #     logging.info(f"[{club_name}] Completed study {sid}")
+                    # except Exception as e:
+                    #     logging.exception(
+                    #         f"[{club_name}] Failed processing study {sid}: {e}"
+                    #     )
                     try:
-                        download_pdf(club_config["hostname"], access_token, sid, email)
-                        ecg_send.process_club_pdfs(
+                        download_pdf(
+                            club_config["hostname"], club_name, access_token, sid, email
+                        )
+                        success = ecg_send.process_club_pdfs(
                             club_name, csv_path, stop_event
-                        )  # process PDFs, send email/SMS
-                        seen_ids.add(sid)
-                        save_seen_ids(club_name, seen_ids)
-                        logging.info(f"[{club_name}] Completed study {sid}")
+                        )
+                        if success:
+                            seen_ids.add(sid)
+                            save_seen_ids(club_name, seen_ids)
+                            logging.info(f"[{club_name}] Completed study {sid}")
+                        else:
+                            logging.warning(
+                                f"[{club_name}] Partial failure for study {sid}, will retry"
+                            )
                     except Exception as e:
                         logging.exception(
                             f"[{club_name}] Failed processing study {sid}: {e}"
@@ -101,9 +120,15 @@ def run_poller(stop_event: Event, log_queue):
 
         except Exception as e:
             error_count += 1
-            wait = min(_BACKOFF_BASE * (_BACKOFF_FACTOR ** (error_count - 1)), _BACKOFF_MAX)
-            logging.exception(f"Polling error: {e}")
-            logging.warning(
-                f"Consecutive failure #{error_count}. Retrying in {wait}s."
+            wait = min(
+                _BACKOFF_BASE * (_BACKOFF_FACTOR ** (error_count - 1)), _BACKOFF_MAX
             )
+            logging.exception(f"Polling error: {e}")
+            logging.warning(f"Consecutive failure #{error_count}. Retrying in {wait}s.")
             stop_event.wait(wait)
+            if error_count == 5:
+                email_utils.send_email(
+                    EMAIL_SENDER,
+                    f"PDF Pipeline Failure - {club_name}",
+                    f"Polling error:\n{type(e).__name__}: {e}",
+                )
