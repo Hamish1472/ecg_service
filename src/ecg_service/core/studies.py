@@ -25,6 +25,10 @@ def fetch_all_studies(hostname, access_token):
         )
         response.raise_for_status()
         data = response.json()
+
+        if not data["studies"]:
+            break
+
         all_studies.extend(data["studies"])
 
         if data["current_page"] == data["last_page"]:

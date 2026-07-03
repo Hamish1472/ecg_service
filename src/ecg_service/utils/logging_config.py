@@ -28,7 +28,7 @@ def start_listener():
     file_handler.setFormatter(formatter)
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.ERROR)
+    # console_handler.setLevel(logging.ERROR)
     console_handler.setFormatter(formatter)
 
     _log_queue = multiprocessing.Queue(-1)
