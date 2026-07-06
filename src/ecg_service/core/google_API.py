@@ -2,6 +2,7 @@ import os
 import csv
 import sqlite3
 import logging
+import socket
 import pickle
 import gspread
 from google.auth.transport.requests import Request
@@ -15,11 +16,20 @@ from ecg_service.core.patient_creation import upload_csv
 from ecg_service.core.token_manager import TokenManager
 from ecg_service.core.clubs import all_club_configs
 
-
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
+
+
+def is_network_available(host="oauth2.googleapis.com", port=443, timeout=3):
+    """Cheap connectivity/DNS check before hammering every club in the loop."""
+    try:
+        socket.getaddrinfo(host, port)
+        return True
+    except socket.gaierror:
+        return False
+
 
 def sync_db_to_sheet(sheet, db_path):
     """Sync PDF password records from SQLite to a Google Sheet."""
@@ -34,11 +44,15 @@ def sync_db_to_sheet(sheet, db_path):
         return
 
     try:
-        new_values = [["Filename", "Password", "Phone", "Timestamp"], *[list(row) for row in rows]]
+        new_values = [
+            ["Filename", "Password", "Phone", "Timestamp"],
+            *[list(row) for row in rows],
+        ]
         sheet.update(range_name="A1", values=new_values)
         # logging.info(f"PDF sheet synced: {len(rows)} rows written.")
     except Exception as e:
         logging.error(f"Failed to write to PDF sheet: {e}")
+
 
 def load_csv(csv_file):
     if os.path.exists(csv_file):
@@ -169,28 +183,65 @@ def run_google_sync(stop_event, log_queue):
         "19oyQseaulZmVEnHuj-iqNChSSazRO_GxyrOZEcPo9KY"
     ).worksheet("Sheet1")
 
+    base_delay = 5
+    max_delay = 300
+    consecutive_failures = 0
+
     try:
         while not stop_event.is_set():
+            if not is_network_available():
+                consecutive_failures += 1
+                delay = min(base_delay * (2**consecutive_failures), max_delay)
+                logging.warning(
+                    f"Network unavailable (DNS check failed). "
+                    f"Skipping sync cycle #{consecutive_failures}. Retrying in {delay}s."
+                )
+                stop_event.wait(delay)
+                continue
+
+            cycle_had_error = False
             clubs = all_club_configs()
             for club_name, club_config in clubs.items():
+                csv_path = None
                 try:
                     sheet, drive = get_sheet_and_drive(
                         creds, club_config["spreadsheet_id"], club_config["sheet_name"]
                     )
                     csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
-                    # delete_old_rows(sheet)
-                    # clean_drive_folder(drive, club_config["folder_id"])
                     sync_sheet(sheet, csv_path)
                 except Exception as e:
-                    logging.error(f"Google CSV sync error: {e} --- for sheet_id: {club_config["spreadsheet_id"]}, sheet_name: {club_config["sheet_name"]}")
+                    cycle_had_error = True
+                    sheet_id = club_config["spreadsheet_id"]
+                    sheet_name = club_config["sheet_name"]
+                    logging.error(
+                        f"Google CSV sync error: {e} --- for sheet_id: {sheet_id}, sheet_name: {sheet_name}"
+                    )
                 try:
-                    token_manager = TokenManager(club_name)
-                    access_token = token_manager.get_token()
                     if csv_path:
+                        token_manager = TokenManager(club_name)
+                        access_token = token_manager.get_token()
                         upload_csv(access_token, club_config["hostname"], csv_path)
                 except Exception as e:
+                    cycle_had_error = True
                     logging.error(f"{club_name}: QT sync error {e}")
-            sync_db_to_sheet(pdf_sheet, PASSWORD_DB)
-            stop_event.wait(5)
+
+            try:
+                sync_db_to_sheet(pdf_sheet, PASSWORD_DB)
+            except Exception as e:
+                cycle_had_error = True
+                logging.error(f"Failed to write to PDF sheet: {e}")
+
+            if cycle_had_error:
+                consecutive_failures += 1
+                delay = min(base_delay * (2**consecutive_failures), max_delay)
+                logging.warning(
+                    f"Sync cycle had errors (#{consecutive_failures} in a row). "
+                    f"Backing off to {delay}s before next attempt."
+                )
+            else:
+                consecutive_failures = 0
+                delay = base_delay
+
+            stop_event.wait(delay)
     except KeyboardInterrupt:
         logging.info("Google Sheets sync stopped gracefully.")
