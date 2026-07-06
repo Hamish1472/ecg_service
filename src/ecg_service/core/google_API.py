@@ -9,6 +9,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from gspread.exceptions import APIError, SpreadsheetNotFound, WorksheetNotFound
 
 from ecg_service.config import DATA_DIR, AUTH_DIR, PASSWORD_DB
 from ecg_service.utils import logging_config
@@ -21,6 +22,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+_last_db_mtime = None
+
 
 def is_network_available(host="oauth2.googleapis.com", port=443, timeout=3):
     """Cheap connectivity/DNS check before hammering every club in the loop."""
@@ -32,13 +35,19 @@ def is_network_available(host="oauth2.googleapis.com", port=443, timeout=3):
 
 
 def sync_db_to_sheet(sheet, db_path):
-    """Sync PDF password records from SQLite to a Google Sheet."""
+    global _last_db_mtime
+
     try:
+        current_mtime = os.path.getmtime(db_path)
+        if _last_db_mtime == current_mtime:
+            return  # no changes
+
         con = sqlite3.connect(db_path)
         rows = con.execute(
             "SELECT filename, password, phone_number, timestamp FROM passwords"
         ).fetchall()
         con.close()
+
     except Exception as e:
         logging.error(f"Failed to read database: {e}")
         return
@@ -49,9 +58,11 @@ def sync_db_to_sheet(sheet, db_path):
             *[list(row) for row in rows],
         ]
         sheet.update(range_name="A1", values=new_values)
-        # logging.info(f"PDF sheet synced: {len(rows)} rows written.")
+
+        _last_db_mtime = current_mtime
+
     except Exception as e:
-        logging.error(f"Failed to write to PDF sheet: {e}")
+        logging.error(f"Failed to write to sheet: {e}")
 
 
 def load_csv(csv_file):
@@ -97,6 +108,19 @@ def get_sheet_and_drive(creds, spreadsheet_id, sheet_name):
     return sheet, drive_service
 
 
+def get_cached_sheet_and_drive(cache, creds, club_name, spreadsheet_id, sheet_name):
+    """Return a cached (sheet, drive) handle for a club, opening it only once.
+
+    This handle is a reference (spreadsheet ID + worksheet ID/title), not a
+    snapshot of cell data — sheet.get_all_values() still issues a fresh API
+    call every time it's invoked. Caching only skips the repeated
+    open_by_key()/.worksheet() lookup calls, not the actual data read.
+    """
+    if club_name not in cache:
+        cache[club_name] = get_sheet_and_drive(creds, spreadsheet_id, sheet_name)
+    return cache[club_name]
+
+
 # def clean_drive_folder(drive_service, folder_id, days_old=30):
 #     """Delete files older than days_old in Google Drive folder."""
 #     try:
@@ -125,7 +149,12 @@ def get_sheet_and_drive(creds, spreadsheet_id, sheet_name):
 
 
 def sync_sheet(sheet, csv_file):
-    """Fetch Google Sheet data and sync to local CSV."""
+    """Fetch Google Sheet data and sync to local CSV.
+
+    Returns:
+        tuple[list, bool]: (rows now on disk, True if the CSV file was
+        created or its contents changed on this call).
+    """
     sheet_rows = sheet.get_all_values()
     csv_rows = load_csv(csv_file)
 
@@ -134,9 +163,10 @@ def sync_sheet(sheet, csv_file):
         save_csv(csv_file, csv_rows)
 
     updated_rows = [sheet_rows[0]] + sheet_rows[1:]
-    if updated_rows != csv_rows:
+    changed = updated_rows != csv_rows
+    if changed:
         save_csv(csv_file, updated_rows)
-    return updated_rows
+    return updated_rows, changed
 
 
 # def delete_old_rows(sheet, days_old=60):
@@ -183,10 +213,11 @@ def run_google_sync(stop_event, log_queue):
         "19oyQseaulZmVEnHuj-iqNChSSazRO_GxyrOZEcPo9KY"
     ).worksheet("Sheet1")
 
-    base_delay = 5
+    base_delay = 30
     max_delay = 300
     consecutive_failures = 0
-
+    sheet_cache = {}  # club_name -> (sheet, drive), persists across cycles
+    stop_event.wait(2)
     try:
         while not stop_event.is_set():
             if not is_network_available():
@@ -202,20 +233,45 @@ def run_google_sync(stop_event, log_queue):
             cycle_had_error = False
             clubs = all_club_configs()
             for club_name, club_config in clubs.items():
+                stop_event.wait(1.25)
                 csv_path = None
+                csv_changed = False
                 try:
-                    sheet, drive = get_sheet_and_drive(
-                        creds, club_config["spreadsheet_id"], club_config["sheet_name"]
+                    sheet, drive = get_cached_sheet_and_drive(
+                        sheet_cache,
+                        creds,
+                        club_name,
+                        club_config["spreadsheet_id"],
+                        club_config["sheet_name"],
                     )
                     csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
-                    sync_sheet(sheet, csv_path)
+                    _, csv_changed = sync_sheet(sheet, csv_path)
+                except (SpreadsheetNotFound, WorksheetNotFound) as e:
+                    # the cached reference genuinely no longer points anywhere valid
+                    sheet_cache.pop(club_name, None)
+                    cycle_had_error = True
+                    logging.error(
+                        f"[{club_name}] Sheet reference invalid, will reopen next cycle: {e}"
+                    )
+                except APIError as e:
+                    cycle_had_error = True
+                    status = getattr(e.response, "status_code", None)
+                    if status == 429:
+                        logging.warning(f"[{club_name}] Rate limited (429): {e}")
+                    else:
+                        # unknown API error — evict to be safe in case the handle is stale
+                        sheet_cache.pop(club_name, None)
+                        logging.error(f"[{club_name}] Google API error: {e}")
                 except Exception as e:
                     cycle_had_error = True
                     sheet_id = club_config["spreadsheet_id"]
                     sheet_name = club_config["sheet_name"]
                     logging.error(
-                        f"Google CSV sync error: {e} --- for sheet_id: {sheet_id}, sheet_name: {sheet_name}"
+                        f"[{club_name}] Google CSV sync error: {e} --- for sheet_id: {sheet_id}, sheet_name: {sheet_name}"
                     )
+
+                if not csv_changed:
+                    continue
                 try:
                     if csv_path:
                         token_manager = TokenManager(club_name)
@@ -223,7 +279,7 @@ def run_google_sync(stop_event, log_queue):
                         upload_csv(access_token, club_config["hostname"], csv_path)
                 except Exception as e:
                     cycle_had_error = True
-                    logging.error(f"{club_name}: QT sync error {e}")
+                    logging.error(f"[{club_name}]: QT sync error {e}")
 
             try:
                 sync_db_to_sheet(pdf_sheet, PASSWORD_DB)
