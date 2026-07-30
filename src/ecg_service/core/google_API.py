@@ -44,7 +44,7 @@ def sync_db_to_sheet(sheet, db_path):
 
         con = sqlite3.connect(db_path)
         rows = con.execute(
-            "SELECT filename, password, phone_number, timestamp FROM passwords"
+            "SELECT filename, password, phone_number, timestamp, club_name FROM passwords"
         ).fetchall()
         con.close()
 
@@ -54,7 +54,7 @@ def sync_db_to_sheet(sheet, db_path):
 
     try:
         new_values = [
-            ["Filename", "Password", "Phone", "Timestamp"],
+            ["Filename", "Password", "Phone", "Timestamp", "Club Name"],
             *[list(row) for row in rows],
         ]
         sheet.update(range_name="A1", values=new_values)

@@ -4,6 +4,7 @@ import shutil
 import secrets
 import string
 import sqlite3
+import logging
 from datetime import datetime
 
 from ecg_service.config import PASSWORD_DB
@@ -19,25 +20,24 @@ def generate_password(length: int = 16) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def store_password(db_path, filename, password, phone_number):
+def store_password(db_path, filename, password, phone_number, club_name):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    c.execute(
-        """
+    c.execute("""
         CREATE TABLE IF NOT EXISTS passwords (
             filename TEXT PRIMARY KEY,
             password TEXT NOT NULL,
             timestamp TEXT NOT NULL,
-            phone_number TEXT
+            phone_number TEXT,
+            club_name TEXT
         )
-    """
-    )
+    """)
     c.execute(
         """
-        INSERT OR REPLACE INTO passwords (filename, password, timestamp, phone_number)
-        VALUES (?, ?, ?, ?)
+        INSERT OR REPLACE INTO passwords (filename, password, timestamp, phone_number, club_name)
+        VALUES (?, ?, ?, ?, ?)
     """,
-        (filename, password, datetime.now().isoformat(), phone_number),
+        (filename, password, datetime.now().isoformat(), phone_number, club_name),
     )
     conn.commit()
     conn.close()
@@ -57,7 +57,18 @@ def encrypt_pdf(input_path, password):
         input,
         "--replace-input",
     ]
-    subprocess.run(cmd, check=True, cwd=pdf_dir)
+    result = subprocess.run(cmd, cwd=pdf_dir, capture_output=True, text=True)
+    if result.returncode != 0:
+        logging.error(
+            "qpdf failed (exit %s) on %s\nstdout: %s\nstderr: %s",
+            result.returncode,
+            input,
+            result.stdout,
+            result.stderr,
+        )
+        raise subprocess.CalledProcessError(
+            result.returncode, cmd, result.stdout, result.stderr
+        )
 
 
 # if __name__ == "__main__":
