@@ -276,7 +276,9 @@ def run_google_sync(stop_event, log_queue):
                     if csv_path:
                         token_manager = TokenManager(club_name)
                         access_token = token_manager.get_token()
-                        upload_csv(access_token, club_config["hostname"], csv_path)
+                        upload_csv(
+                            access_token, club_config["hostname"], csv_path, club_name
+                        )
                 except Exception as e:
                     cycle_had_error = True
                     logging.error(f"[{club_name}]: QT sync error {e}")

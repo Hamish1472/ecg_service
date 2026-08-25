@@ -1,9 +1,9 @@
 import requests
-from ecg_service.utils import csv_utils
+from ecg_service.utils import csv_utils, email_utils
 from ecg_service.config import get_endpoints
 
 
-def upload_csv(access_token, hostname, csv_path):
+def upload_csv(access_token, hostname, csv_path, club_name):
     """Upload formatted CSV to the club API endpoint."""
     formatted_csv = csv_path.replace(".csv", "_formatted.csv")
     csv_utils.format_consent_csv(csv_path, formatted_csv)
@@ -14,5 +14,13 @@ def upload_csv(access_token, hostname, csv_path):
         response = requests.post(
             get_endpoints(hostname)["CSV_URL"], headers=headers, files=files, timeout=15
         )
+        if response.status_code == 403:
+            email_utils.send_email(
+                "QT@cardiologic.co.uk",
+                f"[{club_name}]: 403",
+                f"403: Unauthorised for {club_name}, check CSV import settings.",
+            )
+
         response.raise_for_status()
+
     return response.json()
