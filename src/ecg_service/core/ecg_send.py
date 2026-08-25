@@ -13,7 +13,9 @@ from ecg_service.config import (
 from ecg_service.utils import csv_utils, email_utils, encryption_utils, sms_utils
 
 
-def process_pdf(filename: str, csv_path: str, club_name: str, stop_event: Event):
+def process_pdf(
+    filename: str, csv_path: str, club_name: str, first_name: str, stop_event: Event
+):
     """Encrypt, zip, and send a single PDF using club CSV."""
     pdf_path = os.path.join(TEMP_DIR, filename)
     # output_path = os.path.join(TEMP_DIR, "encrypted_" + filename)
@@ -26,7 +28,7 @@ def process_pdf(filename: str, csv_path: str, club_name: str, stop_event: Event)
         stop_event.wait(1)
         wait += 1
 
-    phone = csv_utils.get_col_from_email("Phone", csv_path, email)
+    phone = csv_utils.get_col_from_email("Phone", csv_path, email, first_name)
 
     if not phone:
         try:
@@ -38,7 +40,7 @@ def process_pdf(filename: str, csv_path: str, club_name: str, stop_event: Event)
     encryption_utils.encrypt_pdf(pdf_path, password)
     encryption_utils.store_password(PASSWORD_DB, filename, password, phone, club_name)
 
-    body = f"""Dear {csv_utils.get_col_from_email("Name",csv_path, email)},
+    body = f"""Dear {csv_utils.get_col_from_email("Name",csv_path, email, first_name)},
 
 Please find attached the ECG report from your recent test. The password has been sent via text to your provided contact number.
 
@@ -97,14 +99,16 @@ The CardioLogic Team"""
 #     # TEMP_DIR_OBJ.cleanup()
 
 
-def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event) -> bool:
+def process_club_pdfs(
+    club_name: str, csv_path: str, first_name: str, stop_event: Event
+) -> bool:
     """Process all PDFs in TEMP_DIR for one club. Returns True if all succeeded."""
     all_succeeded = True
     for f in os.listdir(TEMP_DIR):
         if not f.endswith(".pdf"):
             continue
         try:
-            process_pdf(f, csv_path, club_name, stop_event)
+            process_pdf(f, csv_path, club_name, first_name, stop_event)
         except Exception as e:
             all_succeeded = False
             logging.exception(f"{club_name}: PDF error {f}: {e}")

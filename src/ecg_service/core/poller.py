@@ -70,6 +70,7 @@ def run_poller(stop_event: Event, log_queue):
 
                     sid = study["sid"]
                     email = study.get("patient_ie_mrn")
+                    first_name = study.get("patient_ie_first_name")
                     # try:
                     #     download_pdf(club_config["hostname"], access_token, sid, email)
                     #     ecg_send.process_club_pdfs(
@@ -87,7 +88,7 @@ def run_poller(stop_event: Event, log_queue):
                             club_config["hostname"], club_name, access_token, sid, email
                         )
                         success = ecg_send.process_club_pdfs(
-                            club_name, csv_path, stop_event
+                            club_name, csv_path, first_name, stop_event
                         )
                         if success:
                             seen_ids.add(sid)
