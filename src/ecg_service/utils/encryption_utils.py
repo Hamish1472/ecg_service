@@ -6,7 +6,7 @@ import string
 import sqlite3
 import logging
 from datetime import datetime
-
+from ecg_service.config import DATA_DIR
 from ecg_service.config import PASSWORD_DB
 
 
@@ -18,6 +18,10 @@ def generate_password(length: int = 16) -> str:
         ch for ch in (string.ascii_letters + string.digits) if ch not in ambiguous
     )
     return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def alternative_password() -> str:
+    return
 
 
 def store_password(db_path, filename, password, phone_number, club_name):

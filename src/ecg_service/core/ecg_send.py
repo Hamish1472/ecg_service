@@ -31,11 +31,12 @@ def process_pdf(
     phone = csv_utils.get_col_from_email("Phone", csv_path, email, first_name)
 
     if not phone:
+        logging.warning("No matching phone found")
         try:
             os.remove(pdf_path)
         except OSError as e:
             logging.error(f"Failed to remove: {pdf_path}: {e}")
-        return
+        return False
 
     encryption_utils.encrypt_pdf(pdf_path, password)
     encryption_utils.store_password(PASSWORD_DB, filename, password, phone, club_name)
@@ -68,6 +69,7 @@ The CardioLogic Team"""
     #     f.write(f"\n{str(datetime.datetime.now())} - {email} - {phone}")
 
     os.rename(pdf_path, pdf_path.replace("pdf", "sent"))
+    return True
 
 
 # def process_club_pdfs(club_name: str, csv_path: str, stop_event: Event):
@@ -108,7 +110,7 @@ def process_club_pdfs(
         if not f.endswith(".pdf"):
             continue
         try:
-            process_pdf(f, csv_path, club_name, first_name, stop_event)
+            all_succeeded = process_pdf(f, csv_path, club_name, first_name, stop_event)
         except Exception as e:
             all_succeeded = False
             logging.exception(f"{club_name}: PDF error {f}: {e}")

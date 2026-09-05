@@ -6,18 +6,16 @@ import pandas as pd
 def get_col_from_email(col_type, csv_file_path, target_email, first_name):
     """
     Looks up a column by email from a CSV file.
-    Phone: Returns E.164 formatted number or 'Not found'.
+    Phone: Returns E.164 formatted number or None.
     Name: Returns P/G name or Patient name.
     """
     with open(csv_file_path, mode="r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         for row in reader:
             email = row.get("Email")
-            name = row.get("Parent/Guardian Name") or row.get("Patient Name")
+            name = row.get("Patient Name")
 
-            if first_name and (
-                not name or first_name.strip().lower() not in name.strip().lower()
-            ):
+            if first_name.lower() not in name.lower():
                 continue
 
             match col_type:
