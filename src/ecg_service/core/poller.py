@@ -1,6 +1,6 @@
 import logging
 import os
-import time
+from datetime import datetime, time as dtime
 from threading import Event
 
 from ecg_service.core import ecg_send
@@ -20,6 +20,17 @@ _BACKOFF_BASE = 10  # seconds for first failure
 _BACKOFF_FACTOR = 2  # multiplier per consecutive failure
 _BACKOFF_MAX = 300  # cap at 5 minutes
 
+# Working hours configuration
+_WORK_START = dtime(9, 0)
+_WORK_END = dtime(17, 0)
+_WORK_DAYS = range(0, 5)
+
+
+def _within_working_hours() -> bool:
+    """Return True if now is Mon-Fri, between 9am and 5pm local time."""
+    now = datetime.now()
+    return now.weekday() in _WORK_DAYS and _WORK_START <= now.time() < _WORK_END
+
 
 def run_poller(stop_event: Event, log_queue):
     """
@@ -34,13 +45,14 @@ def run_poller(stop_event: Event, log_queue):
     while not stop_event.is_set():
         try:
             clubs = all_club_configs()
-            # logging.info(f"Loaded {len(clubs)} club configurations")
+
+            if not _within_working_hours():
+                continue
 
             for club_name, club_config in clubs.items():
                 if stop_event.is_set():
                     break
                 csv_path = os.path.join(DATA_DIR, f"{club_name}.csv")
-                # logging.info(f"Polling for club: {club_name}")
 
                 # Maintain a separate seen file per club
                 seen_ids = load_seen_ids(club_name)
@@ -59,7 +71,6 @@ def run_poller(stop_event: Event, log_queue):
                 ]
 
                 if not new_reports:
-                    # logging.info(f"[{club_name}] No new reports.")
                     continue
 
                 logging.info(f"[{club_name}] {len(new_reports)} new reports found.")
@@ -71,18 +82,6 @@ def run_poller(stop_event: Event, log_queue):
                     sid = study["sid"]
                     email = study.get("patient_ie_mrn")
                     first_name = study.get("patient_ie_first_name")
-                    # try:
-                    #     download_pdf(club_config["hostname"], access_token, sid, email)
-                    #     ecg_send.process_club_pdfs(
-                    #         club_name, csv_path, stop_event
-                    #     )  # process PDFs, send email/SMS
-                    #     seen_ids.add(sid)
-                    #     save_seen_ids(club_name, seen_ids)
-                    #     logging.info(f"[{club_name}] Completed study {sid}")
-                    # except Exception as e:
-                    #     logging.exception(
-                    #         f"[{club_name}] Failed processing study {sid}: {e}"
-                    #     )
                     try:
                         download_pdf(
                             club_config["hostname"], club_name, access_token, sid, email
@@ -113,7 +112,6 @@ def run_poller(stop_event: Event, log_queue):
 
             # Reset error counter on successful loop
             error_count = 0
-            # logging.info(f"Sleeping for {POLL_INTERVAL}s...")
             stop_event.wait(POLL_INTERVAL)
 
         except KeyboardInterrupt:
