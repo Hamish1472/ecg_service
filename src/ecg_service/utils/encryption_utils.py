@@ -20,10 +20,6 @@ def generate_password(length: int = 16) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def alternative_password() -> str:
-    return
-
-
 def store_password(db_path, filename, password, phone_number, club_name):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -50,7 +46,7 @@ def store_password(db_path, filename, password, phone_number, club_name):
 def encrypt_pdf(input_path, password):
     pdf_dir = os.path.dirname(input_path)
     input = os.path.basename(input_path)
-    # output = os.path.basename(output_path)
+
     cmd = [
         "qpdf",
         "--encrypt",
@@ -73,37 +69,3 @@ def encrypt_pdf(input_path, password):
         raise subprocess.CalledProcessError(
             result.returncode, cmd, result.stdout, result.stderr
         )
-
-
-# if __name__ == "__main__":
-#     directory = (
-#         "C:\\Users\\Hamish\\Documents\\Programming\\Python\\ecg_service\\_misc\\input"
-#     )
-#     for name in os.listdir(directory):
-#         path = os.path.join(directory, name)
-#         password = generate_password()
-#         encrypt_pdf(path, password)
-#         store_password(PASSWORD_DB, name, password)
-
-# def compress_pdf(pdf_path, archive_path, password):
-#     pdf_dir = os.path.dirname(pdf_path)
-#     pdf_file = os.path.basename(pdf_path)
-#     cmd = [
-#         SEVEN_ZIP_PATH,
-#         "a",
-#         "-t7z",
-#         archive_path,
-#         pdf_file,
-#         f"-p{password}",
-#         "-mhe=on",
-#     ]
-#     subprocess.run(cmd, check=True, cwd=pdf_dir)
-
-
-# def zip_archive(archive_path, zip_path):
-#     shutil.make_archive(
-#         zip_path.replace(".zip", ""),
-#         "zip",
-#         root_dir=os.path.dirname(archive_path),
-#         base_dir=os.path.basename(archive_path),
-#     )

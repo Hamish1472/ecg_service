@@ -12,8 +12,8 @@ def get_col_from_email(col_type, csv_file_path, target_email, first_name):
     with open(csv_file_path, mode="r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         for row in reader:
-            email = row.get("Email")
-            name = row.get("Patient Name")
+            email = row["Email"]
+            name = row["Patient Name"]
 
             if first_name.lower() not in name.lower():
                 continue
@@ -35,7 +35,7 @@ def get_col_from_email(col_type, csv_file_path, target_email, first_name):
                     ):
                         return name.replace(",", "").upper()
 
-    return
+    return "Participant"
 
 
 def parse_international_phone_number(phone_number):

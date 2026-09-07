@@ -15,6 +15,9 @@ VONAGE_API_SECRET: str = typing.cast(str, os.getenv("VONAGE_API_SECRET"))
 EMAIL_SENDER: str = typing.cast(str, os.getenv("EMAIL_SENDER"))
 EMAIL_PASSWORD: str = typing.cast(str, os.getenv("EMAIL_PASSWORD"))
 
+S3_BUCKET = "cardiologic-ecg-pdf-bucket"
+S3_REGION = "eu-north-1"
+
 # ========================
 # Paths / Folders
 # ========================
@@ -42,7 +45,6 @@ PASSWORD_DB = os.path.join(DATA_DIR, "passwords.db")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SMS_SENDER_ID = "Cardiologic"
-SEVEN_ZIP_PATH = "7z"  # Or full path e.g., "C:/Program Files/7-Zip/7z.exe"
 
 
 # ========================
