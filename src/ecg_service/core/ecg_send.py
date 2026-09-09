@@ -102,12 +102,13 @@ def process_pdf(
             logging.error(f"Failed to remove: {pdf_path}: {e}")
         return False
 
+    name = csv_utils.get_col_from_email("Name", csv_path, email, first_name)
+    filename = name.replace(" ", "_") + ".pdf"
+
     encryption_utils.encrypt_pdf(pdf_path, password)
     encryption_utils.store_password(PASSWORD_DB, filename, password, phone, club_name)
 
-    name = csv_utils.get_col_from_email("Name", csv_path, email, first_name)
-
-    s3_key = f"ecg-reports/{name.replace(' ','_')}.pdf"
+    s3_key = f"ecg-reports/{filename}"
     link = storage_utils.upload_and_get_link(pdf_path, s3_key, expires_in=604800)
 
     link_label = f"Download {name}'s ECG Report"

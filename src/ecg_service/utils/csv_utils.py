@@ -7,26 +7,26 @@ def get_col_from_email(col_type, csv_file_path, target_email, first_name):
     """
     Looks up a column by email from a CSV file.
     Phone: Returns E.164 formatted number or None.
-    Name: Returns P/G name or Patient name.
+    Name: Returns Patient name.
     """
     with open(csv_file_path, mode="r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         for row in reader:
             email = row["Email"]
             name = row["Patient Name"]
+            phone = row["Phone"]
 
             if first_name.lower() not in name.lower():
                 continue
 
             match col_type:
                 case "Phone":
-                    col = row.get("Phone")
                     if (
                         email
-                        and col
+                        and phone
                         and email.strip().lower() == target_email.strip().lower()
                     ):
-                        return parse_international_phone_number(col)
+                        return parse_international_phone_number(phone)
                 case "Name":
                     if (
                         email
