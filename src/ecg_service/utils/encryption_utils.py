@@ -20,7 +20,7 @@ def generate_password(length: int = 16) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def store_password(db_path, filename, password, phone_number, club_name):
+def store_password(db_path, filename, password, phone_number, club_name, email):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("""
@@ -29,15 +29,23 @@ def store_password(db_path, filename, password, phone_number, club_name):
             password TEXT NOT NULL,
             timestamp TEXT NOT NULL,
             phone_number TEXT,
-            club_name TEXT
+            club_name TEXT,
+            email TEXT
         )
     """)
     c.execute(
         """
-        INSERT OR REPLACE INTO passwords (filename, password, timestamp, phone_number, club_name)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO passwords (filename, password, timestamp, phone_number, club_name, email)
+        VALUES (?, ?, ?, ?, ?, ?)
     """,
-        (filename, password, datetime.now().isoformat(), phone_number, club_name),
+        (
+            filename,
+            password,
+            datetime.now().isoformat(),
+            phone_number,
+            club_name,
+            email,
+        ),
     )
     conn.commit()
     conn.close()

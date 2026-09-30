@@ -106,7 +106,9 @@ def process_pdf(
     filename = name.replace(" ", "_") + ".pdf"
 
     encryption_utils.encrypt_pdf(pdf_path, password)
-    encryption_utils.store_password(PASSWORD_DB, filename, password, phone, club_name)
+    encryption_utils.store_password(
+        PASSWORD_DB, filename, password, phone, club_name, email
+    )
 
     s3_key = f"ecg-reports/{filename}"
     link = storage_utils.upload_and_get_link(pdf_path, s3_key, expires_in=604800)
